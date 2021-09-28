@@ -1,0 +1,14 @@
+[
+  {
+    "resourceType": "PlanDefinition",
+    "id": "789",
+    "version": "1.0.0",
+    "url": "https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/789"
+  },
+  {
+    "resourceType": "PlanDefinition",
+    "id": "789",
+    "version": "1.1.0",
+    "url": "https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/789"
+  }
+]

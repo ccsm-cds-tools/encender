@@ -1,0 +1,22 @@
+[
+  {
+    "resourceType": "Patient",
+    "id": "1"
+  },
+  {
+    "resourceType": "PlanDefinition",
+    "id": "minimalPlanDefinition",
+    "status": "draft"
+  },
+  {
+    "resourceType": "PlanDefinition",
+    "id": "invalidPlanDefinition",
+    "statuses": "draftyish"
+  },
+  {
+    "resourceType": "PlanDefinition",
+    "id": "canonicalPlanDefinition",
+    "status": "draft",
+    "url": "https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition"
+  }
+]

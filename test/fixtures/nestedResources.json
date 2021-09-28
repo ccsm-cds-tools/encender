@@ -1,0 +1,69 @@
+[
+  {
+    "resourceType": "Patient",
+    "id": "1"
+  },
+  {
+    "resourceType": "PlanDefinition",
+    "id": "nestedPlanDefinition",
+    "status": "draft",
+    "url": "https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/nestedPlanDefinition",
+    "action": [
+      {
+        "definitionCanonical": "https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition"
+      }
+    ]
+  },
+  {
+    "resourceType": "PlanDefinition",
+    "id": "canonicalPlanDefinition",
+    "status": "draft",
+    "url": "https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition"
+  },
+  {
+    "resourceType": "PlanDefinition",
+    "id": "groupActionPlanDefinition",
+    "status": "draft",
+    "url": "https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/groupActionPlanDefinition",
+    "action": [
+      {
+        "action": [
+          {
+            "definitionCanonical": "https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition"
+          }
+        ]
+      },
+      {
+        "title": "I am an action"
+      }
+    ]
+  },
+  {
+    "resourceType": "PlanDefinition",
+    "id": "planDefinitionWithAnActivity",
+    "status": "draft",
+    "url": "https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/planDefinitionWithAnActivity",
+    "action": [
+      {
+        "definitionCanonical": "https://example-fhir-api.com/path/to/fhir/api/ActivityDefinition/hasACode"
+      }
+    ]
+  },
+  {
+    "resourceType": "ActivityDefinition",
+    "id": "hasACode",
+    "status": "draft",
+    "url": "https://example-fhir-api.com/path/to/fhir/api/ActivityDefinition/hasACode",
+    "kind": "ServiceRequest",
+    "code": {
+      "coding": [
+        {
+          "system": "http://snomed.info/sct",
+          "code": "260385009",
+          "display": "Negative"
+        }
+      ],
+      "text": "I'm nothing"
+    }
+  }
+]

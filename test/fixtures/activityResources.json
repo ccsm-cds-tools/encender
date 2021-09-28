@@ -1,0 +1,43 @@
+[
+  {
+    "resourceType": "Patient",
+    "id": "1"
+  },
+  {
+    "resourceType": "ActivityDefinition",
+    "id": "simpleActivity",
+    "status": "draft",
+    "url": "https://example-fhir-api.com/path/to/fhir/api/ActivityDefinition/simpleActivity",
+    "kind": "ServiceRequest"
+  },
+  {
+    "resourceType": "ActivityDefinition",
+    "id": "noKindOfActivity",
+    "status": "draft",
+    "url": "https://example-fhir-api.com/path/to/fhir/api/ActivityDefinition/noKindOfActivity"
+  },
+  {
+    "resourceType": "ActivityDefinition",
+    "id": "invalidKind",
+    "status": "draft",
+    "url": "https://example-fhir-api.com/path/to/fhir/api/ActivityDefinition/invalidKind",
+    "kind": "NotAThing"
+  },
+  {
+    "resourceType": "ActivityDefinition",
+    "id": "hasACode",
+    "status": "draft",
+    "url": "https://example-fhir-api.com/path/to/fhir/api/ActivityDefinition/hasACode",
+    "kind": "ServiceRequest",
+    "code": {
+      "coding": [
+        {
+          "system": "http://snomed.info/sct",
+          "code": "260385009",
+          "display": "Negative"
+        }
+      ],
+      "text": "I'm nothing"
+    }
+  }
+]

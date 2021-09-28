@@ -1,0 +1,239 @@
+{
+   "library" : {
+      "annotation" : [ {
+         "translatorOptions" : "",
+         "type" : "CqlToElmInfo"
+      } ],
+      "identifier" : {
+         "id" : "TestingCqlLibrary",
+         "version" : "1.0.0"
+      },
+      "schemaIdentifier" : {
+         "id" : "urn:hl7-org:elm",
+         "version" : "r1"
+      },
+      "usings" : {
+         "def" : [ {
+            "localIdentifier" : "System",
+            "uri" : "urn:hl7-org:elm-types:r1"
+         }, {
+            "localIdentifier" : "FHIR",
+            "uri" : "http://hl7.org/fhir",
+            "version" : "4.0.1"
+         } ]
+      },
+      "includes" : {
+         "def" : [ {
+            "localIdentifier" : "FHIRHelpers",
+            "path" : "FHIRHelpers",
+            "version" : "4.0.1"
+         } ]
+      },
+      "statements" : {
+         "def" : [ {
+            "name" : "ReturnsTrue",
+            "context" : "Patient",
+            "accessLevel" : "Public",
+            "expression" : {
+               "valueType" : "{urn:hl7-org:elm-types:r1}Boolean",
+               "value" : "true",
+               "type" : "Literal"
+            }
+         }, {
+            "name" : "ReturnsFalse",
+            "context" : "Patient",
+            "accessLevel" : "Public",
+            "expression" : {
+               "valueType" : "{urn:hl7-org:elm-types:r1}Boolean",
+               "value" : "false",
+               "type" : "Literal"
+            }
+         }, {
+            "name" : "AlsoReturnsTrue",
+            "context" : "Patient",
+            "accessLevel" : "Public",
+            "expression" : {
+               "valueType" : "{urn:hl7-org:elm-types:r1}Boolean",
+               "value" : "true",
+               "type" : "Literal"
+            }
+         }, {
+            "name" : "AnotherTrueStatement",
+            "context" : "Patient",
+            "accessLevel" : "Public",
+            "expression" : {
+               "valueType" : "{urn:hl7-org:elm-types:r1}Boolean",
+               "value" : "true",
+               "type" : "Literal"
+            }
+         }, {
+            "name" : "ButIAmFalse",
+            "context" : "Patient",
+            "accessLevel" : "Public",
+            "expression" : {
+               "valueType" : "{urn:hl7-org:elm-types:r1}Boolean",
+               "value" : "false",
+               "type" : "Literal"
+            }
+         }, {
+            "name" : "AlsoFalseHere",
+            "context" : "Patient",
+            "accessLevel" : "Public",
+            "expression" : {
+               "valueType" : "{urn:hl7-org:elm-types:r1}Boolean",
+               "value" : "false",
+               "type" : "Literal"
+            }
+         }, {
+            "name" : "MathCalculation",
+            "context" : "Patient",
+            "accessLevel" : "Public",
+            "expression" : {
+               "type" : "Add",
+               "operand" : [ {
+                  "valueType" : "{urn:hl7-org:elm-types:r1}Decimal",
+                  "value" : "40.0",
+                  "type" : "Literal"
+               }, {
+                  "valueType" : "{urn:hl7-org:elm-types:r1}Decimal",
+                  "value" : "2.0",
+                  "type" : "Literal"
+               } ]
+            }
+         }, {
+            "name" : "TrueMathStatement",
+            "context" : "Patient",
+            "accessLevel" : "Public",
+            "expression" : {
+               "type" : "Greater",
+               "operand" : [ {
+                  "name" : "MathCalculation",
+                  "type" : "ExpressionRef"
+               }, {
+                  "valueType" : "{urn:hl7-org:elm-types:r1}Decimal",
+                  "value" : "0.0",
+                  "type" : "Literal"
+               } ]
+            }
+         }, {
+            "name" : "FalseMathStatement",
+            "context" : "Patient",
+            "accessLevel" : "Public",
+            "expression" : {
+               "type" : "Less",
+               "operand" : [ {
+                  "name" : "MathCalculation",
+                  "type" : "ExpressionRef"
+               }, {
+                  "valueType" : "{urn:hl7-org:elm-types:r1}Decimal",
+                  "value" : "0.0",
+                  "type" : "Literal"
+               } ]
+            }
+         }, {
+            "name" : "NestedMathCalculation",
+            "context" : "Patient",
+            "accessLevel" : "Public",
+            "expression" : {
+               "type" : "Add",
+               "operand" : [ {
+                  "name" : "MathCalculation",
+                  "type" : "ExpressionRef"
+               }, {
+                  "valueType" : "{urn:hl7-org:elm-types:r1}Decimal",
+                  "value" : "100.0",
+                  "type" : "Literal"
+               } ]
+            }
+         }, {
+            "name" : "NestedMathStatement",
+            "context" : "Patient",
+            "accessLevel" : "Public",
+            "expression" : {
+               "type" : "And",
+               "operand" : [ {
+                  "name" : "TrueMathStatement",
+                  "type" : "ExpressionRef"
+               }, {
+                  "type" : "Greater",
+                  "operand" : [ {
+                     "name" : "NestedMathCalculation",
+                     "type" : "ExpressionRef"
+                  }, {
+                     "valueType" : "{urn:hl7-org:elm-types:r1}Decimal",
+                     "value" : "0.0",
+                     "type" : "Literal"
+                  } ]
+               } ]
+            }
+         }, {
+            "name" : "AnotherNestedMathStatement",
+            "context" : "Patient",
+            "accessLevel" : "Public",
+            "expression" : {
+               "type" : "And",
+               "operand" : [ {
+                  "name" : "NestedMathStatement",
+                  "type" : "ExpressionRef"
+               }, {
+                  "type" : "Less",
+                  "operand" : [ {
+                     "name" : "NestedMathCalculation",
+                     "type" : "ExpressionRef"
+                  }, {
+                     "valueType" : "{urn:hl7-org:elm-types:r1}Decimal",
+                     "value" : "0.0",
+                     "type" : "Literal"
+                  } ]
+               } ]
+            }
+         }, {
+            "name" : "ReturnsACode",
+            "context" : "Patient",
+            "accessLevel" : "Public",
+            "expression" : {
+               "type" : "Tuple",
+               "element" : [ {
+                  "name" : "coding",
+                  "value" : {
+                     "type" : "List",
+                     "element" : [ {
+                        "type" : "Tuple",
+                        "element" : [ {
+                           "name" : "system",
+                           "value" : {
+                              "valueType" : "{urn:hl7-org:elm-types:r1}String",
+                              "value" : "http://snomed.info/sct",
+                              "type" : "Literal"
+                           }
+                        }, {
+                           "name" : "code",
+                           "value" : {
+                              "valueType" : "{urn:hl7-org:elm-types:r1}String",
+                              "value" : "10828004",
+                              "type" : "Literal"
+                           }
+                        }, {
+                           "name" : "display",
+                           "value" : {
+                              "valueType" : "{urn:hl7-org:elm-types:r1}String",
+                              "value" : "Positive",
+                              "type" : "Literal"
+                           }
+                        } ]
+                     } ]
+                  }
+               }, {
+                  "name" : "text",
+                  "value" : {
+                     "valueType" : "{urn:hl7-org:elm-types:r1}String",
+                     "value" : "I'm something",
+                     "type" : "Literal"
+                  }
+               } ]
+            }
+         } ]
+      }
+   }
+}
+

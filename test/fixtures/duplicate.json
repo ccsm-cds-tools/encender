@@ -1,0 +1,17 @@
+[
+  {
+    "resourceType": "Patient",
+    "id": "123"
+  },
+  {
+    "resourceType": "Patient",
+    "id": "123"
+  },
+  {
+    "resourceType": "Condition",
+    "id": "456",
+    "subject": {
+      "reference": "Patient/123"
+    }
+  }
+]
