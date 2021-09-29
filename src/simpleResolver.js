@@ -42,7 +42,7 @@ export function simpleResolver(input = null) {
     // Is this a bundle?
     if (fhirJson?.resourceType == 'Bundle') {
       // Flatten out the entries
-      fhirJson = fhirJson?.entries.map(r => r.resource);
+      fhirJson = fhirJson?.entry.map(r => r.resource);
     } else if (fhirJson.resourceType) {
       // Is this even a FHIR resource?
       fhirJson = [fhirJson];
