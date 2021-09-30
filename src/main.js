@@ -105,7 +105,17 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
         const resolvedLibraries = resolver(libRef);
         if (Array.isArray(resolvedLibraries) && resolvedLibraries.length > 0) {
           const library = resolvedLibraries[0]; // TODO: What to do if multiple libraries are found?
-          elmJson = JSON.parse(Buffer.from(library.content[0].data,'base64').toString('ascii')); // TODO: Throw error on no data
+          // Find an ELM JSON Attachment
+          // NOTE: The cql-worker library can only execute ELM JSON
+          for (const libraryContent of library.content) {
+            if (libraryContent.contentType == "application/elm+json") {
+              elmJson = JSON.parse(Buffer.from(libraryContent.data,'base64').toString('ascii')); // TODO: Throw error on no data
+              break;
+            }
+          }
+          if (!elmJson) {
+            throw new Error('No Attachments with contentType "application/elm+json" found in referenced Library: ' + libRef);
+          }
         } else {
           throw new Error('Cannot resolve referenced Library: ' + libRef);
         }
