@@ -320,8 +320,11 @@ async function processActions(actions, patientReference, resolver, aux, evaluate
           if (act?.dynamicValue) {
             // Copy the values over to the target resource
             CarePlan = evaluatedValues.reduce((acc, cv) => {
-              acc[cv.path] = cv.evaluated;
-              return acc;
+              let append = expandPathAndValue(cv.path, cv.evaluated);
+              return {
+                ...acc,
+                ...append
+              };
             }, CarePlan);
           }
 
@@ -353,8 +356,11 @@ async function processActions(actions, patientReference, resolver, aux, evaluate
           if (act?.dynamicValue) {
             // Copy the values over to the target resource
             targetResource = evaluatedValues.reduce((acc, cv) => {
-              acc[cv.path] = cv.evaluated;
-              return acc;
+              let append = expandPathAndValue(cv.path, cv.evaluated);
+              return {
+                ...acc,
+                ...append
+              };
             }, targetResource);
           }
 
@@ -564,8 +570,11 @@ function formatErrorMessage(errorOutput) {
 
       // Copy the values over to the target resource
       targetResource = evaluatedValues.reduce((acc, cv) => {
-        acc[cv.path] = cv.evaluated;
-        return acc;
+        let append = expandPathAndValue(cv.path, cv.evaluated);
+        return {
+          ...acc,
+          ...append
+        };
       }, targetResource);
     } finally {
       cqlWorker?.terminate();
@@ -574,4 +583,30 @@ function formatErrorMessage(errorOutput) {
 
   return targetResource;
 
+}
+
+function expandPathAndValue(path, value) {
+  let jsonString = path.split('.').reduce((acc, cv) => {
+    if (/\[/.test(cv)) {
+      let bar = cv.split('[');
+      let first = bar[0];
+      // let second = bar[1].split(']')[0];
+      return {
+        open: acc.open + `"${first}":[`,
+        close: acc.close + ']'
+      }
+    } else {
+      return {
+        open: acc.open + `"${cv}":`,
+        close: acc.close + ''
+      }
+    }
+  }, {
+    open: '{',
+    close: '}'
+  });
+
+  let expandedObject = JSON.parse(jsonString.open + JSON.stringify(value) + jsonString.close);
+
+  return expandedObject;
 }
