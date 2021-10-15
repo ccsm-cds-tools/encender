@@ -92,7 +92,7 @@ describe('Basic Conversion Tests', async function() {
     CarePlan.resourceType.should.equal('CarePlan');
     CarePlan.subject.should.deep.equal({
       reference: 'Patient/1',
-      display: 'undefined undefined'
+      display: ''
     });
     CarePlan.instantiatesCanonical.should.equal('https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition');
     CarePlan.status.should.equal('draft');
@@ -107,7 +107,7 @@ describe('Basic Conversion Tests', async function() {
     RequestGroup.resourceType.should.equal('RequestGroup');
     RequestGroup.subject.should.deep.equal({
       reference: 'Patient/1',
-      display: 'undefined undefined'
+      display: ''
     });
     RequestGroup.instantiatesCanonical.should.equal('https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition');
     RequestGroup.status.should.equal('draft');
@@ -128,27 +128,27 @@ describe('More Complex Conversion Tests', async function() {
 
     RequestGroup.action.should.deep.equal([
       {
-        id: '3',
-        resource: 'CarePlan/4'
+        id: '5',
+        resource: 'CarePlan/6'
       }
     ]);
 
     otherResources.should.deep.equal([
       {
         resourceType: 'CarePlan',
-        id: '4',
-        subject: { reference: 'Patient/1', display: 'undefined undefined' },
+        id: '6',
+        subject: { reference: 'Patient/1', display: '' },
         instantiatesCanonical: 'https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition',
         intent: 'proposal',
         status: 'option',
         activity: [{
-          reference: { reference: 'RequestGroup/5' }
+          reference: { reference: 'RequestGroup/7' }
         }]
       },
       {
         resourceType: 'RequestGroup',
-        id: '5',
-        subject: { reference: 'Patient/1', display: 'undefined undefined' },
+        id: '7',
+        subject: { reference: 'Patient/1', display: '' },
         instantiatesCanonical: 'https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition',
         intent: 'proposal',
         status: 'draft'
@@ -166,15 +166,15 @@ describe('More Complex Conversion Tests', async function() {
 
     RequestGroup.action.should.deep.equal([
       {
-        id: '12',
+        id: '14',
         title: 'I am an action'
       },
       {
-        id: '8',
+        id: '10',
         action: [
           {
-            id: '9',
-            resource: 'CarePlan/10'
+            id: '11',
+            resource: 'CarePlan/12'
           }
         ]
       }
@@ -183,19 +183,19 @@ describe('More Complex Conversion Tests', async function() {
     otherResources.should.deep.equal([
       {
         resourceType: 'CarePlan',
-        id: '10',
-        subject: { reference: 'Patient/1', display: 'undefined undefined' },
+        id: '12',
+        subject: { reference: 'Patient/1', display: '' },
         instantiatesCanonical: 'https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition',
         intent: 'proposal',
         status: 'option',
         activity: [{
-          reference: { reference: 'RequestGroup/11' }
+          reference: { reference: 'RequestGroup/13' }
         }]
       },
       {
         resourceType: 'RequestGroup',
-        id: '11',
-        subject: { reference: 'Patient/1', display: 'undefined undefined' },
+        id: '13',
+        subject: { reference: 'Patient/1', display: '' },
         instantiatesCanonical: 'https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition',
         intent: 'proposal',
         status: 'draft'
@@ -213,15 +213,15 @@ describe('More Complex Conversion Tests', async function() {
 
     RequestGroup.action.should.deep.equal([
       {
-        id: '15',
-        resource: 'ServiceRequest/16'
+        id: '17',
+        resource: 'ServiceRequest/18'
       }
     ]);
 
     otherResources.should.deep.equal([
       {
-        id: '16',
-        subject: { reference: 'Patient/1', display: 'undefined undefined' },
+        id: '18',
+        subject: { reference: 'Patient/1', display: '' },
         resourceType: 'ServiceRequest',
         status: 'option',
         code: { 
@@ -309,20 +309,18 @@ describe('CQL expression tests', async function() {
 
     const [CarePlan, RequestGroup, ...otherResources] = await applyPlan(truthyApplicabilityCondition, patientReference, resolver);
 
-    // console.log(RequestGroup);
-
     RequestGroup.action.should.deep.equal([
       {
-        id: '24',
+        id: '26',
         title: 'I am an unconditional action'
       },
       {
         title: 'I am a conditional action',
-        id: '23',
+        id: '25',
         action: [
           {
-            id: '25',
-            resource: 'CarePlan/26'
+            id: '27',
+            resource: 'CarePlan/28'
           }
         ]
       }
@@ -337,11 +335,9 @@ describe('CQL expression tests', async function() {
 
     const [CarePlan, RequestGroup, ...otherResources] = await applyPlan(falsyApplicabilityCondition, patientReference, resolver);
 
-    // console.log(RequestGroup);
-
     RequestGroup.action.should.deep.equal([
       {
-        id: '31',
+        id: '33',
         title: 'I am an unconditional action'
       }
     ]);
@@ -355,11 +351,9 @@ describe('CQL expression tests', async function() {
 
     const [CarePlan, RequestGroup, ...otherResources] = await applyPlan(trueFalseApplicabilityConditions, patientReference, resolver);
 
-    // console.log(RequestGroup);
-
     RequestGroup.action.should.deep.equal([
       {
-        id: '35',
+        id: '37',
         title: 'I am an unconditional action'
       }
     ]);
@@ -377,16 +371,16 @@ describe('CQL expression tests', async function() {
 
     RequestGroup.action.should.deep.equal([
       {
-        id: '39',
+        id: '41',
         title: 'I am an unconditional action'
       },
       {
         title: 'I am a conditional action',
-        id: '38',
+        id: '40',
         action: [
           {
-            id: '40',
-            resource: 'CarePlan/41'
+            id: '42',
+            resource: 'CarePlan/43'
           }
         ]
       }
@@ -403,7 +397,7 @@ describe('CQL expression tests', async function() {
 
     RequestGroup.action.should.deep.equal([
       {
-        id: '46',
+        id: '48',
         title: 'I am an unconditional action'
       }
     ]);
@@ -419,16 +413,16 @@ describe('CQL expression tests', async function() {
 
     RequestGroup.action.should.deep.equal([
       {
-        id: '50',
+        id: '52',
         title: 'I am an unconditional action'
       },
       {
         title: 'I am a conditional action',
-        id: '49',
+        id: '51',
         action: [
           {
-            id: '51',
-            resource: 'ServiceRequest/52'
+            id: '53',
+            resource: 'ServiceRequest/54'
           }
         ]
       }
@@ -436,8 +430,8 @@ describe('CQL expression tests', async function() {
 
     otherResources.should.deep.equal([
       {
-        id: '52',
-        subject: { reference: 'Patient/1', display: 'undefined undefined' },
+        id: '54',
+        subject: { reference: 'Patient/1', display: '' },
         resourceType: 'ServiceRequest',
         status: 'option',
         code: { 

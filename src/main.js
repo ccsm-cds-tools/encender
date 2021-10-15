@@ -4,7 +4,7 @@ const validator = new JSONSchemaValidator();
 
 import { Worker } from 'worker_threads';
 import { initialzieCqlWorker } from 'cql-worker';
-import { getIncrementalId, pruneNull, elmJsonId } from './utils.js';
+import { getIncrementalId, pruneNull, parseName, expandPathAndValue } from './utils.js';
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -44,7 +44,7 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
     id: getId(),
     subject: {
       reference: 'Patient/' + Patient.id,
-      display: Patient?.name?.given + ' ' + Patient?.name?.family
+      display: parseName(Patient?.name)
     },
     instantiatesCanonical: planDefinition.url,
     intent: 'proposal',
@@ -320,8 +320,11 @@ async function processActions(actions, patientReference, resolver, aux, evaluate
           if (act?.dynamicValue) {
             // Copy the values over to the target resource
             CarePlan = evaluatedValues.reduce((acc, cv) => {
-              acc[cv.path] = cv.evaluated;
-              return acc;
+              let append = expandPathAndValue(cv.path, cv.evaluated);
+              return {
+                ...acc,
+                ...append
+              };
             }, CarePlan);
           }
 
@@ -353,8 +356,11 @@ async function processActions(actions, patientReference, resolver, aux, evaluate
           if (act?.dynamicValue) {
             // Copy the values over to the target resource
             targetResource = evaluatedValues.reduce((acc, cv) => {
-              acc[cv.path] = cv.evaluated;
-              return acc;
+              let append = expandPathAndValue(cv.path, cv.evaluated);
+              return {
+                ...acc,
+                ...append
+              };
             }, targetResource);
           }
 
@@ -441,7 +447,7 @@ function formatErrorMessage(errorOutput) {
     id: getId(),
     subject: {
       reference: 'Patient/' + Patient.id,
-      display: (Patient?.name?.given + ' ' + Patient?.name?.family).trim()
+      display: parseName(Patient?.name)
     }
   };
   
@@ -564,8 +570,11 @@ function formatErrorMessage(errorOutput) {
 
       // Copy the values over to the target resource
       targetResource = evaluatedValues.reduce((acc, cv) => {
-        acc[cv.path] = cv.evaluated;
-        return acc;
+        let append = expandPathAndValue(cv.path, cv.evaluated);
+        return {
+          ...acc,
+          ...append
+        };
       }, targetResource);
     } finally {
       cqlWorker?.terminate();
