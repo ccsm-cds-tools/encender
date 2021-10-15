@@ -1,6 +1,6 @@
 {
   "name": "encender",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "An asynchronous implementation of the FHIR $apply operation",
   "main": "./src/main.js",
