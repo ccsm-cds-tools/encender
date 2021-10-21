@@ -563,7 +563,7 @@ function formatErrorMessage(errorOutput) {
         const value = await evaluateExpression(dV.expression.expression);
         return {
           path: dV.path,
-          evaluated: value
+          evaluated: typeof value === 'string' ? value : JSON.stringify(value)
         };
         // TODO: Throw error if expression can't be evaluated (two cases)
       }));
