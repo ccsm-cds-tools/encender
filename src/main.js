@@ -4,7 +4,7 @@ const validator = new JSONSchemaValidator();
 
 import { Worker } from 'worker_threads';
 import { initialzieCqlWorker } from 'cql-worker';
-import { getIncrementalId, pruneNull, parseName, expandPathAndValue } from './utils.js';
+import { getIncrementalId, pruneNull, parseName, expandPathAndValue, shouldTryToStringify } from './utils.js';
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -320,7 +320,8 @@ async function processActions(actions, patientReference, resolver, aux, evaluate
           if (act?.dynamicValue) {
             // Copy the values over to the target resource
             CarePlan = evaluatedValues.reduce((acc, cv) => {
-              let append = expandPathAndValue(cv.path, cv.evaluated);
+              let value = shouldTryToStringify(cv.path) ? JSON.stringify(cv.evaluated) : cv.evaluated;
+              let append = expandPathAndValue(cv.path, value);
               return {
                 ...acc,
                 ...append
@@ -356,7 +357,8 @@ async function processActions(actions, patientReference, resolver, aux, evaluate
           if (act?.dynamicValue) {
             // Copy the values over to the target resource
             targetResource = evaluatedValues.reduce((acc, cv) => {
-              let append = expandPathAndValue(cv.path, cv.evaluated);
+              let value = shouldTryToStringify(cv.path) ? JSON.stringify(cv.evaluated) : cv.evaluated;
+              let append = expandPathAndValue(cv.path, value);
               return {
                 ...acc,
                 ...append
@@ -570,7 +572,8 @@ function formatErrorMessage(errorOutput) {
 
       // Copy the values over to the target resource
       targetResource = evaluatedValues.reduce((acc, cv) => {
-        let append = expandPathAndValue(cv.path, cv.evaluated);
+        let value = shouldTryToStringify(cv.path) ? JSON.stringify(cv.evaluated) : cv.evaluated;
+        let append = expandPathAndValue(cv.path, value);
         return {
           ...acc,
           ...append

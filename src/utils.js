@@ -41,6 +41,36 @@ export function parseName(names) {
   return name.trim();
 }
 
+/**
+ * In some cases we need to serialize objects coming out of CQL expressions. This 
+ * occurs when the target element is a string but what is being returned by a CQL 
+ * expression is an object (tuple or list). This function determines whether the 
+ * value returned from CQL should be stringified or not.
+ * @param {string} elementPath - The path to an element on a FHIR resource. 
+ * @returns {boolean} - Whether the type of said element is a string.
+ */
+export function shouldTryToStringify(elementPath) {
+  // NOTE: We *could* try to use the ModelInfo object provided by the cql-exec-fhir 
+  // library to determine if the element specified by elementPath is supposed to 
+  // be a string. The advantage of this approach is that it opens the door to more 
+  // general kinds of type checking. But it is also complicated and doesn't cover 
+  // the case where elementPath points to a choice element which could be but is 
+  // not necessarily a string.
+  //
+  // Instead, we will assume that the type has been specified using the 
+  // [ofType() function](https://hl7.org/fhirpath/#oftypetype-type-specifier-collection).
+  // This is [explicitly allowed for choice elements](https://hl7.org/fhirpath/#paths-and-polymorphic-items) 
+  // and is valid for non choice elements as well. Plus, ofType() is part of the 
+  // [simple FHIRPath](https://www.hl7.org/fhir/fhirpath.html#simple) allowed in 
+  // path.
+  if (elementPath) {
+    if (/ofType\(string\)$/.test(elementPath)) return true;
+    else return false;
+  } else {
+    return false;
+  }
+}
+
 export function expandPathAndValue(path, value) {
   // Split the path string along the dots ('.') and construct the opening and 
   // closing brackets.
@@ -54,6 +84,11 @@ export function expandPathAndValue(path, value) {
         open: acc.open + `{"${arrayName}":[`,
         close: ']}' + acc.close
       }
+    } else if (/ofType\(string\)$/.test(cv)) {
+      return { // NOTE: Skip this part of the path if it is just a type specifier.
+        open: acc.open,
+        close: acc.close
+      };
     } else {
       return {
         open: acc.open + `{"${cv}":`,
