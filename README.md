@@ -45,11 +45,26 @@ const [CarePlan, RequestGroup, ...otherResources] =
   await applyPlan(planDefinitionObject, patientReferenceString, resolver, aux);
 ```
 
+### CQL
+
+Encender is able to execute CQL expressions referenced in PlanDefinition [dynamicValue](https://www.hl7.org/fhir/plandefinition-definitions.html#PlanDefinition.action.dynamicValue) 
+and [condition](https://www.hl7.org/fhir/plandefinition-definitions.html#PlanDefinition.action.condition) elements. No type 
+checking is done to make sure that the value returned from the CQL expression matches what is expected by the element being 
+targeted by a dynamicValue. When specifying the [path element](https://www.hl7.org/fhir/plandefinition-definitions.html#PlanDefinition.action.dynamicValue.path) 
+of a dynamic value, users can include a `.ofType(string)` at the end of the path and Encender will attempt to stringify 
+the CQL output. This can useful in cases where a CQL expression is generating a list or tuple and this must be serialized 
+for an element with a string type.
+
 ### Tests and Coverage
 
-The tests folder contains several examples for how to run Encender. Tests can be run at the command line by invoking `npm run test` after running `npm install`. Code test coverage can be calculated by running `npm run coverage`.
+The test folder contains several examples for how to run Encender. Tests can be run at the command line by invoking `npm run test` after running `npm install`. Code test coverage can be calculated by running `npm run coverage`.
 
-## Known Limitations
+### Examples
+
+In addition to the examples in the test folder, here is a list of examples of using Encender in other projects:
+- [Cervical Cancer Screening and Management (CCSM) Clinical Decision Support (CDS) with Tests](https://github.com/ccsm-cds-tools/ccsm-cds-with-tests/blob/main/apply/screening-example.js)
+
+## Known Limitations and Caveats
 
 The following aspects of the `$apply` operation have not been implemented yet:
 
