@@ -192,7 +192,7 @@ function applyGuard(appliableResource, patientReference=null, resolver=null, aux
 
   // Try to resolve the patient reference
   let Patient = resolver(patientReference);
-  if (!Patient || Patient?.length == 0) throw new Error('Patient reference cannot be resolved');
+  if (!Patient || Patient?.length == 0 || !Patient[0]) throw new Error('Patient reference cannot be resolved');
   Patient = Patient[0];
 
   return Patient;
