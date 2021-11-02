@@ -4,7 +4,7 @@ const validator = new JSONSchemaValidator();
 
 import { Worker } from 'worker_threads';
 import { initialzieCqlWorker } from 'cql-worker';
-import { getIncrementalId, pruneNull, parseName, expandPathAndValue, shouldTryToStringify } from './utils.js';
+import { getIncrementalId, pruneNull, parseName, expandPathAndValue, shouldTryToStringify, transformChoicePaths } from './utils.js';
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -320,8 +320,9 @@ async function processActions(actions, patientReference, resolver, aux, evaluate
           if (act?.dynamicValue) {
             // Copy the values over to the target resource
             CarePlan = evaluatedValues.reduce((acc, cv) => {
+              let path = transformChoicePaths('CarePlan', cv.path);
               let value = shouldTryToStringify(cv.path) ? JSON.stringify(cv.evaluated) : cv.evaluated;
-              let append = expandPathAndValue(cv.path, value);
+              let append = expandPathAndValue(path, value);
               return {
                 ...acc,
                 ...append
@@ -357,8 +358,9 @@ async function processActions(actions, patientReference, resolver, aux, evaluate
           if (act?.dynamicValue) {
             // Copy the values over to the target resource
             targetResource = evaluatedValues.reduce((acc, cv) => {
+              let path = transformChoicePaths(targetResource.resourceType, cv.path);
               let value = shouldTryToStringify(cv.path) ? JSON.stringify(cv.evaluated) : cv.evaluated;
-              let append = expandPathAndValue(cv.path, value);
+              let append = expandPathAndValue(path, value);
               return {
                 ...acc,
                 ...append
@@ -565,15 +567,16 @@ function formatErrorMessage(errorOutput) {
         const value = await evaluateExpression(dV.expression.expression);
         return {
           path: dV.path,
-          evaluated: typeof value === 'string' ? value : JSON.stringify(value)
+          evaluated: value
         };
         // TODO: Throw error if expression can't be evaluated (two cases)
       }));
 
       // Copy the values over to the target resource
       targetResource = evaluatedValues.reduce((acc, cv) => {
+        let path = transformChoicePaths(targetResource.resourceType, cv.path);
         let value = shouldTryToStringify(cv.path) ? JSON.stringify(cv.evaluated) : cv.evaluated;
-        let append = expandPathAndValue(cv.path, value);
+        let append = expandPathAndValue(path, value);
         return {
           ...acc,
           ...append

@@ -479,7 +479,7 @@ describe('CQL expression tests', async function() {
         status: 'option',
         payload: [
           {
-            content: "{\"coding\":[{\"system\":\"http://snomed.info/sct\",\"code\":\"10828004\",\"display\":\"Positive\"}],\"text\":\"I'm something\"}"
+            contentString: "{\"coding\":[{\"system\":\"http://snomed.info/sct\",\"code\":\"10828004\",\"display\":\"Positive\"}],\"text\":\"I'm something\"}"
           }
         ]
       }
