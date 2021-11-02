@@ -447,6 +447,46 @@ describe('CQL expression tests', async function() {
 
   });
 
+  it('Should stringify dynamicValue elements with paths that end with ofType(string).', async function() {
+    let resolver = simpleResolver('./test/fixtures/dynamicValuesResources.json');
+    const hasDynamicValueAction = resolver('PlanDefinition/hasDynamicValueThatShouldBeStringified')[0];
+    const patientReference = 'Patient/1';
+
+    const [CarePlan, RequestGroup, ...otherResources] = await applyPlan(hasDynamicValueAction, patientReference, resolver);
+
+    RequestGroup.action.should.deep.equal([
+      {
+        id: '58',
+        title: 'I am an unconditional action'
+      },
+      {
+        title: 'I am a conditional action',
+        id: '57',
+        action: [
+          {
+            id: '59',
+            resource: 'CommunicationRequest/60'
+          }
+        ]
+      }
+    ]);
+
+    otherResources.should.deep.equal([
+      {
+        id: '60',
+        subject: { reference: 'Patient/1', display: '' },
+        resourceType: 'CommunicationRequest',
+        status: 'option',
+        payload: [
+          {
+            contentString: "{\"coding\":[{\"system\":\"http://snomed.info/sct\",\"code\":\"10828004\",\"display\":\"Positive\"}],\"text\":\"I'm something\"}"
+          }
+        ]
+      }
+    ]);
+
+  });
+
   // TODO: Metadata and precedence rules
 
 });
