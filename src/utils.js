@@ -50,9 +50,10 @@ export function parseName(names) {
  * expression is an object (tuple or list). This function determines whether the 
  * value returned from CQL should be stringified or not.
  * @param {string} elementPath - The path to an element on a FHIR resource. 
- * @returns {boolean} - Whether the type of said element is a string.
+ * @param elementValue - The value of the element
+ * @returns {boolean} - Whether elementValue should be stringified
  */
-export function shouldTryToStringify(elementPath) {
+export function shouldTryToStringify(elementPath, elementValue) {
   // NOTE: We *could* try to use the ModelInfo object provided by the cql-exec-fhir 
   // library to determine if the element specified by elementPath is supposed to 
   // be a string. The advantage of this approach is that it opens the door to more 
@@ -67,7 +68,10 @@ export function shouldTryToStringify(elementPath) {
   // [simple FHIRPath](https://www.hl7.org/fhir/fhirpath.html#simple) allowed in 
   // path.
   if (elementPath) {
-    if (/ofType\(string\)$/.test(elementPath)) return true;
+    if (
+      /ofType\(string\)$/.test(elementPath) &&
+      typeof elementValue != 'string'
+    ) return true;
     else return false;
   } else {
     return false;

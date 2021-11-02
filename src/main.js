@@ -321,7 +321,7 @@ async function processActions(actions, patientReference, resolver, aux, evaluate
             // Copy the values over to the target resource
             CarePlan = evaluatedValues.reduce((acc, cv) => {
               let path = transformChoicePaths('CarePlan', cv.path);
-              let value = shouldTryToStringify(cv.path) ? JSON.stringify(cv.evaluated) : cv.evaluated;
+              let value = shouldTryToStringify(cv.path, cv.evaluated) ? JSON.stringify(cv.evaluated) : cv.evaluated;
               let append = expandPathAndValue(path, value);
               return {
                 ...acc,
@@ -359,7 +359,7 @@ async function processActions(actions, patientReference, resolver, aux, evaluate
             // Copy the values over to the target resource
             targetResource = evaluatedValues.reduce((acc, cv) => {
               let path = transformChoicePaths(targetResource.resourceType, cv.path);
-              let value = shouldTryToStringify(cv.path) ? JSON.stringify(cv.evaluated) : cv.evaluated;
+              let value = shouldTryToStringify(cv.path, cv.evaluated) ? JSON.stringify(cv.evaluated) : cv.evaluated;
               let append = expandPathAndValue(path, value);
               return {
                 ...acc,
@@ -575,7 +575,7 @@ function formatErrorMessage(errorOutput) {
       // Copy the values over to the target resource
       targetResource = evaluatedValues.reduce((acc, cv) => {
         let path = transformChoicePaths(targetResource.resourceType, cv.path);
-        let value = shouldTryToStringify(cv.path) ? JSON.stringify(cv.evaluated) : cv.evaluated;
+        let value = shouldTryToStringify(cv.path, cv.evaluated) ? JSON.stringify(cv.evaluated) : cv.evaluated;
         let append = expandPathAndValue(path, value);
         return {
           ...acc,
