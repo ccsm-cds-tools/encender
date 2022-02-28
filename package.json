@@ -1,9 +1,10 @@
 {
   "name": "encender",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "description": "An asynchronous implementation of the FHIR $apply operation",
   "main": "./src/main.js",
+  "homepage": "https://github.com/ccsm-cds-tools/encender",
   "scripts": {
     "test": "node --experimental-json-modules --no-warnings ./node_modules/mocha/bin/mocha --recursive",
     "coverage": "c8 --all npm run test"
@@ -17,7 +18,7 @@
   },
   "dependencies": {
     "@asymmetrik/fhir-json-schema-validator": "^0.9.8",
-    "cql-worker": "^1.1.0",
+    "cql-worker": "^1.1.4",
     "semver": "^6.3.0"
   }
 }
