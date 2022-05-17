@@ -2,12 +2,15 @@ const fhir_json_schema_validator = await import('@asymmetrik/fhir-json-schema-va
 const JSONSchemaValidator = fhir_json_schema_validator.default;
 const validator = new JSONSchemaValidator();
 
-import { Worker } from 'worker_threads';
-import { initialzieCqlWorker } from 'cql-worker';
-import { getIncrementalId, pruneNull, parseName, expandPathAndValue, shouldTryToStringify, transformChoicePaths } from './utils.js';
+const isNodeJs = typeof(window) === 'undefined';
 
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
+const Worker = isNodeJs ? (await import('worker_threads')).Worker : window.Worker;
+const workerScript = isNodeJs ?
+  (await import('module')).Module.createRequire(import.meta.url).resolve('cql-worker/src/cql-worker-thread.js') :
+  './cql.worker.js';
+
+import { initialzieCqlWorker } from 'cql-worker';
+import { getIncrementalId, pruneNull, parseName, expandPathAndValue, shouldTryToStringify, transformChoicePaths, getElmJsonFromLibrary } from './utils.js';
 
 export { simpleResolver } from './simpleResolver.js';
 
@@ -83,10 +86,10 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
   let otherResources = []; // Any resources created as part of action processing
 
   // Setup the CQL Worker and process the actions
-  let cqlWorker = new Worker(require.resolve('cql-worker/src/cql-worker-thread.js'));
+  let cqlWorker = new Worker(workerScript);
   try {
 
-    let [setupExecution, sendPatientBundle, evaluateExpression] = initialzieCqlWorker(cqlWorker, true);
+    let [setupExecution, sendPatientBundle, evaluateExpression] = initialzieCqlWorker(cqlWorker, isNodeJs);
 
     // Before processing each action, we need to check whether a library is being 
     // referenced by this PlanDefinition.
@@ -107,12 +110,7 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
           const library = resolvedLibraries[0]; // TODO: What to do if multiple libraries are found?
           // Find an ELM JSON Attachment
           // NOTE: The cql-worker library can only execute ELM JSON
-          for (const libraryContent of library.content) {
-            if (libraryContent.contentType == "application/elm+json") {
-              elmJson = JSON.parse(Buffer.from(libraryContent.data,'base64').toString('ascii')); // TODO: Throw error on no data
-              break;
-            }
-          }
+          elmJson = getElmJsonFromLibrary(library, isNodeJs);
           if (!elmJson) {
             throw new Error('No Attachments with contentType "application/elm+json" found in referenced Library: ' + libRef);
           }
@@ -523,9 +521,9 @@ function formatErrorMessage(errorOutput) {
   ----------------------------------------------------------------------------*/
   if (activityDefinition?.dynamicValue) {
     // Define a new worker thread to evaluate these dynamicValue expressions
-    let cqlWorker = new Worker(require.resolve('cql-worker/src/cql-worker-thread.js'));
+    let cqlWorker = new Worker(workerScript);
     try {
-      let [setupExecution, sendPatientBundle, evaluateExpression] = initialzieCqlWorker(cqlWorker, true);
+      let [setupExecution, sendPatientBundle, evaluateExpression] = initialzieCqlWorker(cqlWorker, isNodeJs);
       if (Array.isArray(activityDefinition.library)) {
         const libRef = activityDefinition.library[0];
   
@@ -541,7 +539,12 @@ function formatErrorMessage(errorOutput) {
           const resolvedLibraries = resolver(libRef);
           if (Array.isArray(resolvedLibraries) && resolvedLibraries.length > 0) {
             const library = resolvedLibraries[0]; // TODO: What to do if multiple libraries are found?
-            elmJson = JSON.parse(Buffer.from(library.content[0].data,'base64').toString('ascii')); // TODO: Throw error on no data
+            // Find an ELM JSON Attachment
+            // NOTE: The cql-worker library can only execute ELM JSON
+            elmJson = getElmJsonFromLibrary(library, inNode);
+            if (!elmJson) {
+              throw new Error('No Attachments with contentType "application/elm+json" found in referenced Library: ' + libRef);
+            }
           } else {
             throw new Error('Cannot resolve referenced Library: ' + libRef);
           }

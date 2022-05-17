@@ -170,6 +170,24 @@ export function expandPathAndValue(path, value) {
   return expandedObject;
 }
 
+/**
+ * @param {object (FHIR Library)} library - FHIR Library to search in
+ * @param {boolean} isNodeJs - True if running in Node.JS
+ * @returns {object | undefined} - Parsed ELM JSON, if it exists
+ */
+ export function getElmJsonFromLibrary(library, isNodeJs=true) {
+  for (const libraryContent of library.content) {
+    if (libraryContent.contentType == "application/elm+json") {
+      if (isNodeJs) {
+        return JSON.parse(Buffer.from(libraryContent.data,'base64').toString('ascii'));
+      }
+      else {
+        return JSON.parse(window.atob(libraryContent.data)); // TODO: Throw error on no data
+      }
+    }
+  }
+}
+
 // From: https://www.hl7.org/fhir/choice-elements.json
 const publishedFhirChoiceTypes = {
   "elements" : {
