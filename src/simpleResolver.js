@@ -15,14 +15,15 @@ const restfulFhirUrlRegex = /((http|https):\/\/([A-Za-z0-9\-\\\.\:\%\$]*\/)+)?(A
  * @param {string|object|array} input 
  * @returns {function}
  */
-export function simpleResolver(input = null) {
+export function simpleResolver(input = null, isNodeJs=true) {
 
   let fhirJson;
 
   // First check if the input is a string
   if (typeof input ==  'string') {
     // Then check whether this string is a path that exists
-    if (existsSync(input)) {
+    //  (only if we're running in Node.js since we need filesystem access)
+    if (isNodeJs && existsSync(input)) {
       // If it is, then read it in an deserialize
       fhirJson = JSON.parse(readFileSync(input));
     } else {
