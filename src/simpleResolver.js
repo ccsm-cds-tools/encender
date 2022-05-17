@@ -66,28 +66,37 @@ export function simpleResolver(input = null) {
     // If a reference is provided, extract the resource type, ID, and version.
     if (resourceReference) {
       // Match the reference against the regular expression
-      let [_, baseUrl, ___, ____, resourceType, resourceId, version] = restfulFhirUrlRegex.exec(resourceReference);
+      let [_, baseUrl, ___, ____, resourceType, resourceId, version] = restfulFhirUrlRegex.exec(resourceReference) || [];
 
-      resourceId = resourceId.split('/')[1]; // strip off leading forward slash
+      // If enough data could be extracted from `resourceReference`, attempt to search for the resource by ID
+      if (resourceType !== undefined && resourceId !== undefined) {
+        resourceId = resourceId.split('/')[1]; // strip off leading forward slash
 
-      // Form the url to resource
-      // TODO: Refactor RegExp so this just falls out of the match
-      let url = baseUrl + resourceType + '/' + resourceId;
+        // Form the url to resource
+        // TODO: Refactor RegExp so this just falls out of the match
+        let url = baseUrl + resourceType + '/' + resourceId;
 
-      if (version) { // If there is a version we know this is a canonical reference.
-        // See: https://www.hl7.org/fhir/references.html#canonical
-        version = version.split('|');
-        version.shift(); // strip off leading pipe
-        resolvedReference = fhirJson.filter(rsrc => {
-          return rsrc.resourceType == resourceType 
-            && rsrc.url == url
-            && rsrc.version == version;
-        });
-      } else { // No version provided, could be literal/logical or canonical
-        const sortedFhirJson = fhirJson.filter(rsrc => {
-          return rsrc.resourceType == resourceType 
-            && (rsrc.id == resourceId || rsrc.url == url);
-        }).sort(compareSemver); 
+        if (version) { // If there is a version we know this is a canonical reference.
+          // See: https://www.hl7.org/fhir/references.html#canonical
+          version = version.split('|');
+          version.shift(); // strip off leading pipe
+          resolvedReference = fhirJson.filter(rsrc => {
+            return rsrc.resourceType == resourceType 
+              && rsrc.url == url
+              && rsrc.version == version;
+          });
+        } else { // No version provided, could be literal/logical or canonical
+          const sortedFhirJson = fhirJson.filter(rsrc => {
+            return rsrc.resourceType == resourceType 
+              && (rsrc.id == resourceId || rsrc.url == url);
+          }).sort(compareSemver);
+          // NOTE: We're grabbing the first index which should be latest version.
+          const shifted = sortedFhirJson.shift();
+          resolvedReference = shifted !== undefined ? [shifted] : [];
+        }
+      }
+      else { // Not enough data was extracted, so attempt to search for the resource by an exact URL match
+        const sortedFhirJson = fhirJson.filter(rsrc => rsrc.url === resourceReference).sort(compareSemver);
         // NOTE: We're grabbing the first index which should be latest version.
         const shifted = sortedFhirJson.shift();
         resolvedReference = shifted !== undefined ? [shifted] : [];
