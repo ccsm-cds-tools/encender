@@ -89,7 +89,8 @@ export function simpleResolver(input = null) {
             && (rsrc.id == resourceId || rsrc.url == url);
         }).sort(compareSemver); 
         // NOTE: We're grabbing the first index which should be latest version.
-        resolvedReference = [sortedFhirJson.shift()];
+        const shifted = sortedFhirJson.shift();
+        resolvedReference = shifted !== undefined ? [shifted] : [];
       }
     } else { // No reference provided so just return fhirJson in its entirety.
       resolvedReference = fhirJson;
