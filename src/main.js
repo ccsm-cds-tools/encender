@@ -2,17 +2,28 @@ const fhir_json_schema_validator = await import('@asymmetrik/fhir-json-schema-va
 const JSONSchemaValidator = fhir_json_schema_validator.default;
 const validator = new JSONSchemaValidator();
 
-const isNodeJs = typeof(window) === 'undefined';
+const isNodeJs = typeof process !== "undefined" && 
+  process.versions != null && 
+  process.versions.node != null;
 
-const Worker = isNodeJs ? (await import('worker_threads')).Worker : window.Worker;
 const workerScript = isNodeJs ?
-  (await import('module')).Module.createRequire(import.meta.url).resolve('cql-worker/src/cql-worker-thread.js') :
+  ( await import('module') ).Module.createRequire(import.meta.url).resolve('cql-worker/src/cql-worker-thread.js') :
   './cql.worker.js';
 
-import { initialzieCqlWorker } from 'cql-worker';
-import { getIncrementalId, pruneNull, parseName, expandPathAndValue, shouldTryToStringify, transformChoicePaths, getElmJsonFromLibrary } from './utils.js';
+const Worker = isNodeJs ? 
+  ( await import('worker_threads') ).Worker : 
+  window.Worker;
 
-export { simpleResolver } from './simpleResolver.js';
+import { initialzieCqlWorker } from 'cql-worker';
+import { 
+  getIncrementalId, 
+  pruneNull, 
+  parseName, 
+  expandPathAndValue, 
+  shouldTryToStringify, 
+  transformChoicePaths, 
+  getElmJsonFromLibrary 
+} from './utils.js';
 
 /**
  * Apply a PlanDefinition to a Patient

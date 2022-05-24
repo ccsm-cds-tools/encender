@@ -32,6 +32,28 @@ describe('Resource resolver tests', function () {
     ]);
   });
 
+  it('Should load a entries in a bundle resource.', function() {
+    let resolver = simpleResolver('./test/fixtures/bundle.json');
+    let fhirJson = resolver(); // calling with no argument returns everything
+    fhirJson.should.deep.equal([
+      {
+        "resourceType": "Patient",
+        "id": "123"
+      },
+      {
+        "resourceType": "Patient",
+        "id": "abc"
+      },
+      {
+        "resourceType": "Condition",
+        "id": "456",
+        "subject": {
+          "reference": "Patient/123"
+        }
+      }
+    ]);
+  });
+
   it('Should correctly return the resource we ask for by relative literal reference.', function() {
     // See https://www.hl7.org/fhir/references.html#literal
     let resolver = simpleResolver('./test/fixtures/basic.json');
@@ -107,6 +129,13 @@ describe('Resource resolver tests', function () {
     // See https://www.hl7.org/fhir/references.html#literal
     let resolver = simpleResolver('./test/fixtures/canonical.json');
     let fhirJson = resolver('https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/alphaBetaGamma|1.0.0');
+    fhirJson.should.deep.equal([]);
+  });
+
+  it('Should not return anything if the specified ID is not found and a version is not requested.', function() {
+    // See https://www.hl7.org/fhir/references.html#literal
+    let resolver = simpleResolver('./test/fixtures/canonical.json');
+    let fhirJson = resolver('https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/alphaBetaGamma');
     fhirJson.should.deep.equal([]);
   });
 

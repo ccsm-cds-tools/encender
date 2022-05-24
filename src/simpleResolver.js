@@ -15,7 +15,7 @@ const restfulFhirUrlRegex = /((http|https):\/\/([A-Za-z0-9\-\\\.\:\%\$]*\/)+)?(A
  * @param {string|object|array} input 
  * @returns {function}
  */
-export function simpleResolver(input = null, isNodeJs=true) {
+export function simpleResolver(input=null, isNodeJs=true) {
 
   let fhirJson;
 
@@ -46,7 +46,6 @@ export function simpleResolver(input = null, isNodeJs=true) {
       fhirJson = fhirJson.entry !== undefined ?
         fhirJson.entry.map(r => r.resource) :
         [];
-      fhirJson = fhirJson?.entry.map(r => r.resource);
     } else if (fhirJson.resourceType) {
       // Is this even a FHIR resource?
       fhirJson = [fhirJson];
@@ -119,12 +118,12 @@ function compareSemver(a,b) {
   // If either a or b do not have a version element, set a default.
   const aVersion = a.version ?? '0.0.0';
   const bVersion = b.version ?? '0.0.0';
-  if (aVersion.split('.').length < 3) {
-    aVersion = coerce(aVersion)?.raw || '0.0.0';
-  }
-  if (bVersion.split('.').length < 3) {
-    bVersion = coerce(bVersion)?.raw || '0.0.0';
-  }
+  // if (aVersion.split('.').length < 3) {
+  //   aVersion = coerce(aVersion)?.raw || '0.0.0';
+  // }
+  // if (bVersion.split('.').length < 3) {
+  //   bVersion = coerce(bVersion)?.raw || '0.0.0';
+  // }
 
   return rcompare(aVersion, bVersion);
 }
