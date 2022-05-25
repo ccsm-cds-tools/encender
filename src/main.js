@@ -44,7 +44,7 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
   ----------------------------------------------------------------------------*/
 
   // Validates the input parameters and returns the Patient resource if there are no issues
-  const Patient = applyGuard(planDefinition, patientReference, resolver, aux);
+  const Patient = await applyGuard(planDefinition, patientReference, resolver, aux);
 
   // Either use the provided ID generation function or just use a simple counter.
   const getId = aux?.getId ?? getIncrementalId;
@@ -116,7 +116,7 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
       let elmJson = elmJsonDependencies[elmJsonKey];
 
       if (!elmJson) {
-        const resolvedLibraries = resolver(libRef);
+        const resolvedLibraries = await resolver(libRef);
         if (Array.isArray(resolvedLibraries) && resolvedLibraries.length > 0) {
           const library = resolvedLibraries[0]; // TODO: What to do if multiple libraries are found?
           // Find an ELM JSON Attachment
@@ -136,7 +136,7 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
         resourceType: 'Bundle',
         id: 'survey-bundle',
         type: 'collection',
-        entry: resolver().map(r => {return {resource: r}})
+        entry: ( await resolver() ).map(r => {return {resource: r}})
       };
       sendPatientBundle(patientBundle);
     }
@@ -166,7 +166,7 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
  * @param {Object} aux - Auxiliary resources and services
  * @returns {Object[]} The resolved Patient resource
  */
-function applyGuard(appliableResource, patientReference=null, resolver=null, aux={}) {
+async function applyGuard(appliableResource, patientReference=null, resolver=null, aux={}) {
 
   // Validate inputs
   const appliableResourceTypes = [
@@ -200,7 +200,7 @@ function applyGuard(appliableResource, patientReference=null, resolver=null, aux
   }
 
   // Try to resolve the patient reference
-  let Patient = resolver(patientReference);
+  let Patient = await resolver(patientReference);
   if (!Patient || Patient?.length == 0 || !Patient[0]) throw new Error('Patient reference cannot be resolved');
   Patient = Patient[0];
 
@@ -307,12 +307,14 @@ async function processActions(actions, patientReference, resolver, aux, evaluate
 
         if (/PlanDefinition/.test(def)) {
           // If this is a PlanDefinition, resolve it so we can apply it
-          const planDefinition = resolver(def)[0];
+          const planDefinition = ( await resolver(def) )[0];
           // NOTE: Recursive function call
           let [CarePlan, RequestGroup, ...moreResources] = await applyPlan(planDefinition, patientReference, resolver, aux);
 
           // Link the generated CarePlan's id via the resource element
-          applied.resource = 'CarePlan/' + CarePlan.id;
+          applied.resource = {
+            reference: 'CarePlan/' + CarePlan.id
+          };
 
           // Set the status of the target resource to option
           CarePlan.status = 'option';
@@ -346,11 +348,13 @@ async function processActions(actions, patientReference, resolver, aux, evaluate
 
         } else if (/ActivityDefinition/.test(def)) {
           // If this is an ActivityDefinition, resolve it so we can apply it
-          const activityDefinition = resolver(def)[0];
+          const activityDefinition = ( await resolver(def) )[0];
           let targetResource = await applyActivity(activityDefinition, patientReference, resolver, aux);
 
           // Link the generated CarePlan's id via the resource element
-          applied.resource = targetResource.resourceType + '/' + targetResource.id;
+          applied.resource = {
+            reference: targetResource.resourceType + '/' + targetResource.id
+          };
 
           // Set the status of the target resource to option
           targetResource.status = 'option';
@@ -448,7 +452,7 @@ function formatErrorMessage(errorOutput) {
   ----------------------------------------------------------------------------*/
 
   // Validates the input parameters and returns the Patient resource if there are no issues
-  const Patient = applyGuard(activityDefinition, patientReference, resolver, aux);
+  const Patient = await applyGuard(activityDefinition, patientReference, resolver, aux);
 
   // Either use the provided ID generation function or just use a simple counter.
   const getId = aux?.getId ?? getIncrementalId;
@@ -547,7 +551,7 @@ function formatErrorMessage(errorOutput) {
         let elmJson = elmJsonDependencies[elmJsonKey];
   
         if (!elmJson) {
-          const resolvedLibraries = resolver(libRef);
+          const resolvedLibraries = await resolver(libRef);
           if (Array.isArray(resolvedLibraries) && resolvedLibraries.length > 0) {
             const library = resolvedLibraries[0]; // TODO: What to do if multiple libraries are found?
             // Find an ELM JSON Attachment
@@ -566,7 +570,7 @@ function formatErrorMessage(errorOutput) {
           resourceType: 'Bundle',
           id: 'survey-bundle',
           type: 'collection',
-          entry: resolver().map(r => {return {resource: r}})
+          entry: ( await resolver() ).map(r => {return {resource: r}})
         };
         sendPatientBundle(patientBundle);
       } else {
