@@ -25,6 +25,8 @@ import {
   getElmJsonFromLibrary 
 } from './utils.js';
 
+export { simpleResolver } from './simpleResolver.js';
+
 /**
  * Apply a PlanDefinition to a Patient
  * @param {Object} planDefinition - The PlanDefinition
