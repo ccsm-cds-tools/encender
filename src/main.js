@@ -1,11 +1,3 @@
-const fhir_json_schema_validator = await import('@asymmetrik/fhir-json-schema-validator');
-const JSONSchemaValidator = fhir_json_schema_validator.default;
-const validator = new JSONSchemaValidator();
-
-const isNodeJs = typeof process !== "undefined" && 
-  process.versions != null && 
-  process.versions.node != null;
-
 import { Worker as NodeWorker } from 'worker_threads';
 import { createRequire } from 'module';
 
@@ -94,8 +86,10 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
   let otherResources = []; // Any resources created as part of action processing
 
   // Setup the CQL Worker and process the actions
+  let isNodeJs = aux?.isNodeJs ?? false;
   const WorkerFactory = aux?.WorkerFactory ?? ( 
     () => {
+      isNodeJs = true;
       const require = createRequire(import.meta.url);
       return new NodeWorker(require.resolve('cql-worker/src/cql-worker-thread.js'));
     }
@@ -190,6 +184,9 @@ async function applyGuard(appliableResource, patientReference=null, resolver=nul
   } else if (aux?.validateIncoming) {
     try {
       // NOTE: Validation is a very costly operation to perform.
+      const fhir_json_schema_validator = await import('@asymmetrik/fhir-json-schema-validator');
+      const JSONSchemaValidator = fhir_json_schema_validator.default;
+      const validator = new JSONSchemaValidator();
       let errors = validator.validate(appliableResource);
       if (errors.length > 0) {
         throw(errors);
@@ -539,8 +536,10 @@ function formatErrorMessage(errorOutput) {
   ----------------------------------------------------------------------------*/
   if (activityDefinition?.dynamicValue) {
     // Define a new worker thread to evaluate these dynamicValue expressions
+    let isNodeJs = aux?.isNodeJs ?? false;
     const WorkerFactory = aux?.WorkerFactory ?? ( 
       () => {
+        isNodeJs = true;
         const require = createRequire(import.meta.url);
         return new NodeWorker(require.resolve('cql-worker/src/cql-worker-thread.js'));
       }
@@ -565,7 +564,7 @@ function formatErrorMessage(errorOutput) {
             const library = resolvedLibraries[0]; // TODO: What to do if multiple libraries are found?
             // Find an ELM JSON Attachment
             // NOTE: The cql-worker library can only execute ELM JSON
-            elmJson = getElmJsonFromLibrary(library, inNode);
+            elmJson = getElmJsonFromLibrary(library, isNodeJs);
             if (!elmJson) {
               throw new Error('No Attachments with contentType "application/elm+json" found in referenced Library: ' + libRef);
             }

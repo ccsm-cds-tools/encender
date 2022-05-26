@@ -45,6 +45,8 @@ describe('Basic Conversion Tests', async function() {
   });
 
   it('Should throw an error if the PlanDefinition is not valid and validation was requested.', async function() {
+    this.timeout(7500);
+    
     let resolver = simpleResolver('./test/fixtures/minimalResources.json');
     const invalidPlanDefinition = resolver('PlanDefinition/invalidPlanDefinition')[0];
     const patientReference = 'Patient/1';
