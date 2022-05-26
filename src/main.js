@@ -6,13 +6,8 @@ const isNodeJs = typeof process !== "undefined" &&
   process.versions != null && 
   process.versions.node != null;
 
-const workerScript = isNodeJs ?
-  ( await import('module') ).Module.createRequire(import.meta.url).resolve('cql-worker/src/cql-worker-thread.js') :
-  './cql.worker.js';
-
-const Worker = isNodeJs ? 
-  ( await import('worker_threads') ).Worker : 
-  window.Worker;
+import { Worker as NodeWorker } from 'worker_threads';
+import { createRequire } from 'module';
 
 import { initialzieCqlWorker } from 'cql-worker';
 import { 
@@ -99,7 +94,13 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
   let otherResources = []; // Any resources created as part of action processing
 
   // Setup the CQL Worker and process the actions
-  let cqlWorker = new Worker(workerScript);
+  const WorkerFactory = aux?.WorkerFactory ?? ( 
+    () => {
+      const require = createRequire(import.meta.url);
+      return new NodeWorker(require.resolve('cql-worker/src/cql-worker-thread.js'));
+    }
+  );
+  let cqlWorker = WorkerFactory();
   try {
 
     let [setupExecution, sendPatientBundle, evaluateExpression] = initialzieCqlWorker(cqlWorker, isNodeJs);
@@ -538,7 +539,13 @@ function formatErrorMessage(errorOutput) {
   ----------------------------------------------------------------------------*/
   if (activityDefinition?.dynamicValue) {
     // Define a new worker thread to evaluate these dynamicValue expressions
-    let cqlWorker = new Worker(workerScript);
+    const WorkerFactory = aux?.WorkerFactory ?? ( 
+      () => {
+        const require = createRequire(import.meta.url);
+        return new NodeWorker(require.resolve('cql-worker/src/cql-worker-thread.js'));
+      }
+    );
+    let cqlWorker = WorkerFactory();
     try {
       let [setupExecution, sendPatientBundle, evaluateExpression] = initialzieCqlWorker(cqlWorker, isNodeJs);
       if (Array.isArray(activityDefinition.library)) {
