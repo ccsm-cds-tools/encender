@@ -20,7 +20,7 @@ export { simpleResolver } from './simpleResolver.js';
  * @param {String} patientReference - A reference to the Patient
  * @param {Function} resolver - For resolving references to FHIR resources
  * @param {Object} aux - Auxiliary resources and services
- * @returns {Object[]} Array of resources: CarePlan, RequestGroup, and otherResources
+ * @returns {Promise<Object[]>} Array of resources: CarePlan, RequestGroup, and otherResources
  */
 export async function applyPlan(planDefinition, patientReference=null, resolver=null, aux={}) {
   /*---------------------------------------------------------------------------- 
