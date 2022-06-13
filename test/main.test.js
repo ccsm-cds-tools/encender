@@ -45,6 +45,8 @@ describe('Basic Conversion Tests', async function() {
   });
 
   it('Should throw an error if the PlanDefinition is not valid and validation was requested.', async function() {
+    this.timeout(7500);
+    
     let resolver = simpleResolver('./test/fixtures/minimalResources.json');
     const invalidPlanDefinition = resolver('PlanDefinition/invalidPlanDefinition')[0];
     const patientReference = 'Patient/1';
@@ -85,7 +87,7 @@ describe('Basic Conversion Tests', async function() {
     let resolver = simpleResolver('./test/fixtures/minimalResources.json');
     const canonicalPlanDefinition = resolver('PlanDefinition/canonicalPlanDefinition')[0];
     const patientReference = 'Patient/1';
-
+    
     const [CarePlan, RequestGroup] = await applyPlan(canonicalPlanDefinition, patientReference, resolver);
     
     CarePlan.should.not.be.undefined;
@@ -129,7 +131,7 @@ describe('More Complex Conversion Tests', async function() {
     RequestGroup.action.should.deep.equal([
       {
         id: '5',
-        resource: 'CarePlan/6'
+        resource: { reference: 'CarePlan/6' }
       }
     ]);
 
@@ -166,7 +168,7 @@ describe('More Complex Conversion Tests', async function() {
 
     RequestGroup.action.should.deep.equal([
       {
-        id: '14',
+        id: '12',
         title: 'I am an action'
       },
       {
@@ -174,7 +176,7 @@ describe('More Complex Conversion Tests', async function() {
         action: [
           {
             id: '11',
-            resource: 'CarePlan/12'
+            resource: { reference: 'CarePlan/13' }
           }
         ]
       }
@@ -183,18 +185,18 @@ describe('More Complex Conversion Tests', async function() {
     otherResources.should.deep.equal([
       {
         resourceType: 'CarePlan',
-        id: '12',
+        id: '13',
         subject: { reference: 'Patient/1', display: '' },
         instantiatesCanonical: 'https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition',
         intent: 'proposal',
         status: 'option',
         activity: [{
-          reference: { reference: 'RequestGroup/13' }
+          reference: { reference: 'RequestGroup/14' }
         }]
       },
       {
         resourceType: 'RequestGroup',
-        id: '13',
+        id: '14',
         subject: { reference: 'Patient/1', display: '' },
         instantiatesCanonical: 'https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition',
         intent: 'proposal',
@@ -214,7 +216,7 @@ describe('More Complex Conversion Tests', async function() {
     RequestGroup.action.should.deep.equal([
       {
         id: '17',
-        resource: 'ServiceRequest/18'
+        resource: { reference: 'ServiceRequest/18' }
       }
     ]);
 
@@ -320,7 +322,7 @@ describe('CQL expression tests', async function() {
         action: [
           {
             id: '27',
-            resource: 'CarePlan/28'
+            resource: { reference: 'CarePlan/28' }
           }
         ]
       }
@@ -380,7 +382,7 @@ describe('CQL expression tests', async function() {
         action: [
           {
             id: '42',
-            resource: 'CarePlan/43'
+            resource: { reference: 'CarePlan/43' }
           }
         ]
       }
@@ -422,7 +424,7 @@ describe('CQL expression tests', async function() {
         action: [
           {
             id: '53',
-            resource: 'ServiceRequest/54'
+            resource: { reference: 'ServiceRequest/54' }
           }
         ]
       }
@@ -465,7 +467,7 @@ describe('CQL expression tests', async function() {
         action: [
           {
             id: '59',
-            resource: 'CommunicationRequest/60'
+            resource: { reference: 'CommunicationRequest/60' }
           }
         ]
       }
@@ -489,4 +491,46 @@ describe('CQL expression tests', async function() {
 
   // TODO: Metadata and precedence rules
 
+});
+
+describe('Asynchronous tests', async function() {
+  it('Should wait for a slow resolver before applying.', async function() {
+    this.timeout(7500);
+
+    let resolver = simpleResolver('./test/fixtures/minimalResources.json');
+    const canonicalPlanDefinition = resolver('PlanDefinition/canonicalPlanDefinition')[0];
+    const patientReference = 'Patient/1';
+
+    const slowResolver = (r) => {
+      return new Promise((resolve) => setTimeout(() => resolve(resolver(r)), 5000))
+    }
+
+    const [CarePlan, RequestGroup] = await applyPlan(canonicalPlanDefinition, patientReference, slowResolver);
+    
+    CarePlan.should.not.be.undefined;
+    CarePlan.resourceType.should.equal('CarePlan');
+    CarePlan.subject.should.deep.equal({
+      reference: 'Patient/1',
+      display: ''
+    });
+    CarePlan.instantiatesCanonical.should.equal('https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition');
+    CarePlan.status.should.equal('draft');
+    CarePlan.intent.should.equal('proposal');
+    CarePlan.activity.should.deep.equal([
+      {
+        reference: { reference: 'RequestGroup/' + RequestGroup.id }
+      }
+    ]);
+
+    RequestGroup.should.not.be.undefined;
+    RequestGroup.resourceType.should.equal('RequestGroup');
+    RequestGroup.subject.should.deep.equal({
+      reference: 'Patient/1',
+      display: ''
+    });
+    RequestGroup.instantiatesCanonical.should.equal('https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition');
+    RequestGroup.status.should.equal('draft');
+    RequestGroup.intent.should.equal('proposal');
+
+  });
 });

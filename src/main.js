@@ -1,13 +1,16 @@
-const fhir_json_schema_validator = await import('@asymmetrik/fhir-json-schema-validator');
-const JSONSchemaValidator = fhir_json_schema_validator.default;
-const validator = new JSONSchemaValidator();
-
-import { Worker } from 'worker_threads';
-import { initialzieCqlWorker } from 'cql-worker';
-import { getIncrementalId, pruneNull, parseName, expandPathAndValue, shouldTryToStringify, transformChoicePaths } from './utils.js';
-
+import { Worker as NodeWorker } from 'worker_threads';
 import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
+
+import { initialzieCqlWorker } from 'cql-worker';
+import { 
+  getIncrementalId, 
+  pruneNull, 
+  parseName, 
+  expandPathAndValue, 
+  shouldTryToStringify, 
+  transformChoicePaths, 
+  getElmJsonFromLibrary 
+} from './utils.js';
 
 export { simpleResolver } from './simpleResolver.js';
 
@@ -17,7 +20,7 @@ export { simpleResolver } from './simpleResolver.js';
  * @param {String} patientReference - A reference to the Patient
  * @param {Function} resolver - For resolving references to FHIR resources
  * @param {Object} aux - Auxiliary resources and services
- * @returns {Object[]} Array of resources: CarePlan, RequestGroup, and otherResources
+ * @returns {Promise<Object[]>} Array of resources: CarePlan, RequestGroup, and otherResources
  */
 export async function applyPlan(planDefinition, patientReference=null, resolver=null, aux={}) {
   /*---------------------------------------------------------------------------- 
@@ -30,7 +33,7 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
   ----------------------------------------------------------------------------*/
 
   // Validates the input parameters and returns the Patient resource if there are no issues
-  const Patient = applyGuard(planDefinition, patientReference, resolver, aux);
+  const Patient = await applyGuard(planDefinition, patientReference, resolver, aux);
 
   // Either use the provided ID generation function or just use a simple counter.
   const getId = aux?.getId ?? getIncrementalId;
@@ -83,10 +86,18 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
   let otherResources = []; // Any resources created as part of action processing
 
   // Setup the CQL Worker and process the actions
-  let cqlWorker = new Worker(require.resolve('cql-worker/src/cql-worker-thread.js'));
+  let isNodeJs = aux?.isNodeJs ?? false;
+  const WorkerFactory = aux?.WorkerFactory ?? ( 
+    () => {
+      isNodeJs = true;
+      const require = createRequire(import.meta.url);
+      return new NodeWorker(require.resolve('cql-worker/src/cql-worker-thread.js'));
+    }
+  );
+  let cqlWorker = WorkerFactory();
   try {
 
-    let [setupExecution, sendPatientBundle, evaluateExpression] = initialzieCqlWorker(cqlWorker, true);
+    let [setupExecution, sendPatientBundle, evaluateExpression] = initialzieCqlWorker(cqlWorker, isNodeJs);
 
     // Before processing each action, we need to check whether a library is being 
     // referenced by this PlanDefinition.
@@ -102,17 +113,12 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
       let elmJson = elmJsonDependencies[elmJsonKey];
 
       if (!elmJson) {
-        const resolvedLibraries = resolver(libRef);
+        const resolvedLibraries = await resolver(libRef);
         if (Array.isArray(resolvedLibraries) && resolvedLibraries.length > 0) {
           const library = resolvedLibraries[0]; // TODO: What to do if multiple libraries are found?
           // Find an ELM JSON Attachment
           // NOTE: The cql-worker library can only execute ELM JSON
-          for (const libraryContent of library.content) {
-            if (libraryContent.contentType == "application/elm+json") {
-              elmJson = JSON.parse(Buffer.from(libraryContent.data,'base64').toString('ascii')); // TODO: Throw error on no data
-              break;
-            }
-          }
+          elmJson = getElmJsonFromLibrary(library, isNodeJs);
           if (!elmJson) {
             throw new Error('No Attachments with contentType "application/elm+json" found in referenced Library: ' + libRef);
           }
@@ -127,7 +133,7 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
         resourceType: 'Bundle',
         id: 'survey-bundle',
         type: 'collection',
-        entry: resolver().map(r => {return {resource: r}})
+        entry: ( await resolver() ).map(r => {return {resource: r}})
       };
       sendPatientBundle(patientBundle);
     }
@@ -157,7 +163,7 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
  * @param {Object} aux - Auxiliary resources and services
  * @returns {Object[]} The resolved Patient resource
  */
-function applyGuard(appliableResource, patientReference=null, resolver=null, aux={}) {
+async function applyGuard(appliableResource, patientReference=null, resolver=null, aux={}) {
 
   // Validate inputs
   const appliableResourceTypes = [
@@ -178,6 +184,9 @@ function applyGuard(appliableResource, patientReference=null, resolver=null, aux
   } else if (aux?.validateIncoming) {
     try {
       // NOTE: Validation is a very costly operation to perform.
+      const fhir_json_schema_validator = await import('@asymmetrik/fhir-json-schema-validator');
+      const JSONSchemaValidator = fhir_json_schema_validator.default;
+      const validator = new JSONSchemaValidator();
       let errors = validator.validate(appliableResource);
       if (errors.length > 0) {
         throw(errors);
@@ -191,7 +200,7 @@ function applyGuard(appliableResource, patientReference=null, resolver=null, aux
   }
 
   // Try to resolve the patient reference
-  let Patient = resolver(patientReference);
+  let Patient = await resolver(patientReference);
   if (!Patient || Patient?.length == 0 || !Patient[0]) throw new Error('Patient reference cannot be resolved');
   Patient = Patient[0];
 
@@ -298,12 +307,14 @@ async function processActions(actions, patientReference, resolver, aux, evaluate
 
         if (/PlanDefinition/.test(def)) {
           // If this is a PlanDefinition, resolve it so we can apply it
-          const planDefinition = resolver(def)[0];
+          const planDefinition = ( await resolver(def) )[0];
           // NOTE: Recursive function call
           let [CarePlan, RequestGroup, ...moreResources] = await applyPlan(planDefinition, patientReference, resolver, aux);
 
           // Link the generated CarePlan's id via the resource element
-          applied.resource = 'CarePlan/' + CarePlan.id;
+          applied.resource = {
+            reference: 'CarePlan/' + CarePlan.id
+          };
 
           // Set the status of the target resource to option
           CarePlan.status = 'option';
@@ -337,11 +348,13 @@ async function processActions(actions, patientReference, resolver, aux, evaluate
 
         } else if (/ActivityDefinition/.test(def)) {
           // If this is an ActivityDefinition, resolve it so we can apply it
-          const activityDefinition = resolver(def)[0];
+          const activityDefinition = ( await resolver(def) )[0];
           let targetResource = await applyActivity(activityDefinition, patientReference, resolver, aux);
 
           // Link the generated CarePlan's id via the resource element
-          applied.resource = targetResource.resourceType + '/' + targetResource.id;
+          applied.resource = {
+            reference: targetResource.resourceType + '/' + targetResource.id
+          };
 
           // Set the status of the target resource to option
           targetResource.status = 'option';
@@ -439,7 +452,7 @@ function formatErrorMessage(errorOutput) {
   ----------------------------------------------------------------------------*/
 
   // Validates the input parameters and returns the Patient resource if there are no issues
-  const Patient = applyGuard(activityDefinition, patientReference, resolver, aux);
+  const Patient = await applyGuard(activityDefinition, patientReference, resolver, aux);
 
   // Either use the provided ID generation function or just use a simple counter.
   const getId = aux?.getId ?? getIncrementalId;
@@ -523,9 +536,17 @@ function formatErrorMessage(errorOutput) {
   ----------------------------------------------------------------------------*/
   if (activityDefinition?.dynamicValue) {
     // Define a new worker thread to evaluate these dynamicValue expressions
-    let cqlWorker = new Worker(require.resolve('cql-worker/src/cql-worker-thread.js'));
+    let isNodeJs = aux?.isNodeJs ?? false;
+    const WorkerFactory = aux?.WorkerFactory ?? ( 
+      () => {
+        isNodeJs = true;
+        const require = createRequire(import.meta.url);
+        return new NodeWorker(require.resolve('cql-worker/src/cql-worker-thread.js'));
+      }
+    );
+    let cqlWorker = WorkerFactory();
     try {
-      let [setupExecution, sendPatientBundle, evaluateExpression] = initialzieCqlWorker(cqlWorker, true);
+      let [setupExecution, sendPatientBundle, evaluateExpression] = initialzieCqlWorker(cqlWorker, isNodeJs);
       if (Array.isArray(activityDefinition.library)) {
         const libRef = activityDefinition.library[0];
   
@@ -538,10 +559,15 @@ function formatErrorMessage(errorOutput) {
         let elmJson = elmJsonDependencies[elmJsonKey];
   
         if (!elmJson) {
-          const resolvedLibraries = resolver(libRef);
+          const resolvedLibraries = await resolver(libRef);
           if (Array.isArray(resolvedLibraries) && resolvedLibraries.length > 0) {
             const library = resolvedLibraries[0]; // TODO: What to do if multiple libraries are found?
-            elmJson = JSON.parse(Buffer.from(library.content[0].data,'base64').toString('ascii')); // TODO: Throw error on no data
+            // Find an ELM JSON Attachment
+            // NOTE: The cql-worker library can only execute ELM JSON
+            elmJson = getElmJsonFromLibrary(library, isNodeJs);
+            if (!elmJson) {
+              throw new Error('No Attachments with contentType "application/elm+json" found in referenced Library: ' + libRef);
+            }
           } else {
             throw new Error('Cannot resolve referenced Library: ' + libRef);
           }
@@ -552,7 +578,7 @@ function formatErrorMessage(errorOutput) {
           resourceType: 'Bundle',
           id: 'survey-bundle',
           type: 'collection',
-          entry: resolver().map(r => {return {resource: r}})
+          entry: ( await resolver() ).map(r => {return {resource: r}})
         };
         sendPatientBundle(patientBundle);
       } else {

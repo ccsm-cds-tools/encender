@@ -1,0 +1,27 @@
+{
+  "resourceType": "Bundle",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "123"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "abc"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Condition",
+        "id": "456",
+        "subject": {
+          "reference": "Patient/123"
+        }
+      }
+    }
+  ]
+}
+  
