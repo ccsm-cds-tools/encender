@@ -507,6 +507,7 @@ function formatErrorMessage(errorOutput) {
   ----------------------------------------------------------------------------*/
   targetResource = pruneNull({
     ...targetResource,
+    basedOn: { reference: activityDefinition?.url },
     code: activityDefinition?.code,
     timing: activityDefinition?.timing,
     doNotPerform: activityDefinition?.doNotPerform,
