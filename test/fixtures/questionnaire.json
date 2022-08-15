@@ -1,0 +1,50 @@
+[
+  {
+    "resourceType": "Patient",
+    "id": "1"
+  },
+  {
+    "resourceType": "PlanDefinition",
+    "id": "definitionOfAPlan",
+    "status": "draft",
+    "url": "https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/nestedPlanDefinition",
+    "action": [
+      {
+        "definitionCanonical": "https://example-fhir-api.com/path/to/fhir/api/Questionnaire/iHaveSomeQuestions"
+      }
+    ]
+  },
+  {
+    "resourceType": "Questionnaire",
+    "id": "iHaveSomeQuestions",
+    "text": {
+      "status": "generated",
+      "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">\nTest\n</div>"
+    },
+    "url": "http://hl7.org/fhir/Questionnaire/1",
+    "title": "Questionnaire with a single item with answerOption",
+    "status": "draft",
+    "subjectType": [
+      "Patient"
+    ],
+    "date": "2020-03",
+    "item": [
+      {
+        "linkId": "1",
+        "text": "Here is a multiple choice question",
+        "type": "choice",
+        "answerOption": [
+          {
+            "valueString": "First choice"
+          },
+          {
+            "valueString": "Second choice"
+          },
+          {
+            "valueString": "Third choice"
+          }
+        ]
+      }
+    ]       
+  }
+]

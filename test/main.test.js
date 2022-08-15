@@ -242,6 +242,59 @@ describe('More Complex Conversion Tests', async function() {
 
   });
 
+  it('Should convert an action defined by a Questionnaire', async function() {
+    let resolver = simpleResolver('./test/fixtures/questionnaire.json');
+    const planDefinitionWithAnActivity = resolver('PlanDefinition/definitionOfAPlan')[0];
+    const patientReference = 'Patient/1';
+
+    const [CarePlan, RequestGroup, ...otherResources] = await applyPlan(planDefinitionWithAnActivity, patientReference, resolver);
+
+    RequestGroup.action.should.deep.equal([
+      {
+        id: '21',
+        resource: { reference: 'Questionnaire/iHaveSomeQuestions' },
+        title: 'Questionnaire with a single item with answerOption'
+      }
+    ]);
+
+    otherResources.should.deep.equal([
+      {
+        id: 'iHaveSomeQuestions',
+        resourceType: 'Questionnaire',
+        text: {
+          status: 'generated',
+          div: '<div xmlns=\"http://www.w3.org/1999/xhtml\">\nTest\n</div>'
+        },
+        url: 'http://hl7.org/fhir/Questionnaire/1',
+        title: 'Questionnaire with a single item with answerOption',
+        status: 'draft',
+        subjectType: [
+          'Patient'
+        ],
+        date: '2020-03',
+        item: [
+          {
+            linkId: '1',
+            text: 'Here is a multiple choice question',
+            type: 'choice',
+            answerOption: [
+              {
+                'valueString': 'First choice'
+              },
+              {
+                'valueString': 'Second choice'
+              },
+              {
+                'valueString': 'Third choice'
+              }
+            ]
+          }
+        ]
+      }
+    ]);
+
+  });
+
 });
 
 describe('ActivityDefinition Tests', async function() {
@@ -314,16 +367,16 @@ describe('CQL expression tests', async function() {
 
     RequestGroup.action.should.deep.equal([
       {
-        id: '26',
+        id: '29',
         title: 'I am an unconditional action'
       },
       {
         title: 'I am a conditional action',
-        id: '25',
+        id: '28',
         action: [
           {
-            id: '27',
-            resource: { reference: 'CarePlan/28' }
+            id: '30',
+            resource: { reference: 'CarePlan/31' }
           }
         ]
       }
@@ -340,7 +393,7 @@ describe('CQL expression tests', async function() {
 
     RequestGroup.action.should.deep.equal([
       {
-        id: '33',
+        id: '36',
         title: 'I am an unconditional action'
       }
     ]);
@@ -356,7 +409,7 @@ describe('CQL expression tests', async function() {
 
     RequestGroup.action.should.deep.equal([
       {
-        id: '37',
+        id: '40',
         title: 'I am an unconditional action'
       }
     ]);
@@ -374,16 +427,16 @@ describe('CQL expression tests', async function() {
 
     RequestGroup.action.should.deep.equal([
       {
-        id: '41',
+        id: '44',
         title: 'I am an unconditional action'
       },
       {
         title: 'I am a conditional action',
-        id: '40',
+        id: '43',
         action: [
           {
-            id: '42',
-            resource: { reference: 'CarePlan/43' }
+            id: '45',
+            resource: { reference: 'CarePlan/46' }
           }
         ]
       }
@@ -400,7 +453,7 @@ describe('CQL expression tests', async function() {
 
     RequestGroup.action.should.deep.equal([
       {
-        id: '48',
+        id: '51',
         title: 'I am an unconditional action'
       }
     ]);
@@ -416,16 +469,16 @@ describe('CQL expression tests', async function() {
 
     RequestGroup.action.should.deep.equal([
       {
-        id: '52',
+        id: '55',
         title: 'I am an unconditional action'
       },
       {
         title: 'I am a conditional action',
-        id: '51',
+        id: '54',
         action: [
           {
-            id: '53',
-            resource: { reference: 'ServiceRequest/54' }
+            id: '56',
+            resource: { reference: 'ServiceRequest/57' }
           }
         ]
       }
@@ -433,7 +486,7 @@ describe('CQL expression tests', async function() {
 
     otherResources.should.deep.equal([
       {
-        id: '54',
+        id: '57',
         subject: { reference: 'Patient/1', display: '' },
         resourceType: 'ServiceRequest',
         status: 'option',
@@ -460,16 +513,16 @@ describe('CQL expression tests', async function() {
 
     RequestGroup.action.should.deep.equal([
       {
-        id: '58',
+        id: '61',
         title: 'I am an unconditional action'
       },
       {
         title: 'I am a conditional action',
-        id: '57',
+        id: '60',
         action: [
           {
-            id: '59',
-            resource: { reference: 'CommunicationRequest/60' }
+            id: '62',
+            resource: { reference: 'CommunicationRequest/63' }
           }
         ]
       }
@@ -477,7 +530,7 @@ describe('CQL expression tests', async function() {
 
     otherResources.should.deep.equal([
       {
-        id: '60',
+        id: '63',
         subject: { reference: 'Patient/1', display: '' },
         resourceType: 'CommunicationRequest',
         status: 'option',
