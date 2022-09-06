@@ -3,14 +3,18 @@ import { createRequire } from 'module';
 
 import { initialzieCqlWorker } from 'cql-worker';
 import { 
-  getIncrementalId, 
-  pruneNull, 
-  parseName, 
-  expandPathAndValue, 
-  shouldTryToStringify, 
-  transformChoicePaths, 
+  getIncrementalId,
+  pruneNull,
+  parseName,
+  formatErrorMessage,
   getElmJsonFromLibrary 
 } from './utils.js';
+
+import {
+  expandPathAndValue, 
+  shouldTryToStringify, 
+  transformChoicePaths
+} from './dynamic.js';
 
 export { simpleResolver } from './simpleResolver.js';
 
@@ -146,6 +150,8 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
   } finally {
     cqlWorker?.terminate();
   }
+
+
   
   return [
     CarePlan,
@@ -163,7 +169,7 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
  * @param {Object} aux - Auxiliary resources and services
  * @returns {Object[]} The resolved Patient resource
  */
-async function applyGuard(appliableResource, patientReference=null, resolver=null, aux={}) {
+ export async function applyGuard(appliableResource, patientReference=null, resolver=null, aux={}) {
 
   // Validate inputs
   const appliableResourceTypes = [
@@ -216,7 +222,7 @@ async function applyGuard(appliableResource, patientReference=null, resolver=nul
  * @param {Object} aux - Auxiliary resources and services
  * @returns {Object} Contains the applied actions as well as any generated resources
  */
-async function processActions(actions, patientReference, resolver, aux, evaluateExpression) {
+export async function processActions(actions, patientReference, resolver, aux, evaluateExpression) {
   /*----------------------------------------------------------------------------
     [Applying a PlanDefinition](https://www.hl7.org/fhir/plandefinition.html#12.18.3.3)
     Processing for each action proceeds according to the following steps:
@@ -435,20 +441,6 @@ async function processActions(actions, patientReference, resolver, aux, evaluate
     processedActions: processedActions,
     otherResources: otherResources // Any resources created as part of action processing
   };
-}
-
-/**
- * Formats the errors output by the validator.validate() function
- * @param {String[]} errorOutput - The incoming error message array
- * @returns {String} - The formatted error message
- */
-function formatErrorMessage(errorOutput) {
-  let message = '\n\n';
-  for (let i = 0; i < errorOutput.length; i++) {
-    message += JSON.stringify(errorOutput[i], null, 4) + '\n';
-  }
-  message += '\n';
-  return message;
 }
 
 /**
