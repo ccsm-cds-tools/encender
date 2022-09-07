@@ -65,5 +65,16 @@
       ],
       "text": "I'm nothing"
     }
+  },
+  {
+    "resourceType": "PlanDefinition",
+    "id": "nestedPlanDefinitionWithActivity",
+    "status": "draft",
+    "url": "https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/nestedPlanDefinitionWithActivity",
+    "action": [
+      {
+        "definitionCanonical": "https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/planDefinitionWithAnActivity"
+      }
+    ]
   }
 ]

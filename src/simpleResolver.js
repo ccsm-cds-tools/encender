@@ -118,12 +118,5 @@ function compareSemver(a,b) {
   // If either a or b do not have a version element, set a default.
   const aVersion = a.version ?? '0.0.0';
   const bVersion = b.version ?? '0.0.0';
-  // if (aVersion.split('.').length < 3) {
-  //   aVersion = coerce(aVersion)?.raw || '0.0.0';
-  // }
-  // if (bVersion.split('.').length < 3) {
-  //   bVersion = coerce(bVersion)?.raw || '0.0.0';
-  // }
-
   return rcompare(aVersion, bVersion);
 }

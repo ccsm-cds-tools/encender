@@ -1,6 +1,6 @@
 import * as chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import  { applyPlan, applyActivity } from '../src/main.js'
+import  { applyPlan, applyActivity, applyAndMerge } from '../src/main.js'
 import { simpleResolver } from '../src/simpleResolver.js';
 
 chai.should();
@@ -589,4 +589,61 @@ describe('Asynchronous tests', async function() {
     RequestGroup.intent.should.equal('proposal');
 
   });
+});
+
+describe('Merge Nested Actions Tests', async function() {
+
+  it('Should merge the actions in a simple nested PlanDefinition.', async function() {
+    let resolver = simpleResolver('./test/fixtures/nestedResources.json');
+    const nestedPlanDefinition = resolver('PlanDefinition/nestedPlanDefinitionWithActivity')[0];
+    const patientReference = 'Patient/1';
+
+    const [RequestGroup, ...otherResources] = await applyAndMerge(nestedPlanDefinition, patientReference, resolver);
+
+    RequestGroup.should.deep.equal(
+      {
+        resourceType: 'RequestGroup',
+        id: '67',
+        subject: { reference: 'Patient/1', display: '' },
+        instantiatesCanonical: 'https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/nestedPlanDefinitionWithActivity',
+        intent: 'proposal',
+        status: 'draft',
+        action: [
+          {
+            id: '71',
+            resource: {
+              reference: 'ServiceRequest/72'
+            }
+          }
+        ]
+      }
+    );
+
+    otherResources.should.deep.equal([
+      {
+        resourceType: 'ServiceRequest',
+        id: '72',
+        subject: {
+          display: '',
+          reference: 'Patient/1'
+        },
+        status: 'option',
+        basedOn: {
+          reference: 'https://example-fhir-api.com/path/to/fhir/api/ActivityDefinition/hasACode'
+        },
+        code: {
+          coding: [
+            {
+              code: '260385009',
+              display: 'Negative',
+              system: 'http://snomed.info/sct',
+            }
+          ],
+          text: 'I\'m nothing'
+        }
+      }
+    ]);
+
+  });
+
 });
