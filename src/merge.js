@@ -27,10 +27,9 @@ function mergeActions(actionArray, resolver) {
           if (cv?.reference?.reference) {
             const subResource = resolver(cv.reference.reference)[0];
             if (subResource?.resourceType === 'RequestGroup') {
-              let temp = mergeActions(subResource.action ?? [], resolver);
               return [
                 ...acc,
-                ...temp
+                ...mergeActions(subResource.action ?? [], resolver)
               ];
             } else {
               return acc;
@@ -40,10 +39,10 @@ function mergeActions(actionArray, resolver) {
           }
         },[]).flat();
       } else {
-        return action;
+        return action.action ?  mergeActions(action.action, resolver) : action;
       }
     } else {
-      return action;
+      return action.action ?  mergeActions(action.action, resolver) : action;
     }
   }).flat();
 }
