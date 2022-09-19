@@ -220,7 +220,12 @@ export async function processActions(actions, patientReference, resolver, aux, e
       id: act?.id ?? getId(),
       title: act?.title,
       description: act?.description,
-      textEquivalent: act?.textEquivalent
+      textEquivalent: act?.textEquivalent,
+      groupingBehavior: act?.groupingBehavior,
+      selectionBehavior: act?.selectionBehavior,
+      requiredBehavior: act?.requiredBehavior,
+      precheckBehavior: act?.precheckBehavior,
+      cardinalityBehavior: act?.cardinalityBehavior
       // TODO: Copy of over timing and any other elements that make sense
       // TODO: Carry over start and stop conditions
     });

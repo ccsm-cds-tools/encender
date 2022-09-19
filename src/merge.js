@@ -17,6 +17,12 @@ export function merge(requestGroup, otherResources) {
   return requestGroup;
 }
 
+/**
+ * 
+ * @param {*} actionArray 
+ * @param {*} resolver 
+ * @returns 
+ */
 function mergeActions(actionArray, resolver) {
   return actionArray.map(action => {
     if (action.resource) {
@@ -39,10 +45,22 @@ function mergeActions(actionArray, resolver) {
           }
         },[]).flat();
       } else {
-        return action.action ?  mergeActions(action.action, resolver) : action;
+        if (action.action) {
+          let actions = mergeActions(action.action, resolver);
+          action.action = actions;
+          return action;
+        } else {
+          return action;
+        }
       }
     } else {
-      return action.action ?  mergeActions(action.action, resolver) : action;
+      if (action.action) {
+        let actions = mergeActions(action.action, resolver);
+        action.action = actions;
+        return action;
+      } else {
+        return action;
+      }
     }
   }).flat();
 }
