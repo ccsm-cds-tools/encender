@@ -292,7 +292,7 @@ export async function processActions(actions, patientReference, resolver, aux, e
           applied = pruneNull({
             ...applied,
             title: act?.title ?? planDefinition?.title,
-            description: act?.description ?? planDefinition?.relatedArtifact,
+            description: act?.description,
             textEquivalent: act?.textEquivalent
           });
 
@@ -332,7 +332,7 @@ export async function processActions(actions, patientReference, resolver, aux, e
           applied = pruneNull({
             ...applied,
             title: act?.title ?? activityDefinition?.title,
-            description: act?.description ?? activityDefinition?.relatedArtifact,
+            description: act?.description,
             textEquivalent: act?.textEquivalent
           });
 
