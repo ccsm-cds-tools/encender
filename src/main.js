@@ -435,11 +435,12 @@ export async function processActions(actions, patientReference, resolver, aux, e
     1. Create the target resource of the type specified by the kind element and focused on the Patient in context
   ----------------------------------------------------------------------------*/
   let targetResource = {
-    id: getId(),
-    subject: {
-      reference: 'Patient/' + Patient.id,
-      display: parseName(Patient?.name)
-    }
+    id: getId()
+  };
+
+  let patientFhirReference = {
+    reference: 'Patient/' + Patient.id,
+    display: parseName(Patient?.name)
   };
   
   // https://www.hl7.org/fhir/valueset-request-resource-types.html
@@ -479,17 +480,121 @@ export async function processActions(actions, patientReference, resolver, aux, e
   /*----------------------------------------------------------------------------
     3. Apply the structural elements of the ActivityDefinition to the target resource such as code, timing, doNotPerform, product, quantity, dosage, and so on
   ----------------------------------------------------------------------------*/
-  targetResource = pruneNull({
+  targetResource = {
     ...targetResource,
     basedOn: { reference: activityDefinition?.url },
-    code: activityDefinition?.code,
-    timing: activityDefinition?.timing,
-    doNotPerform: activityDefinition?.doNotPerform,
-    product: activityDefinition?.product,
-    quantity: activityDefinition?.quantity,
-    dosage: activityDefinition?.dosage
-    // TODO: Copy over other structural elements as it makes sense
-  });
+  };
+  
+  // Mappings copied from the CQF-Ruler
+  // https://github.com/DBCG/cqf-ruler/blob/v0.6.0/plugin/cr/src/main/java/org/opencds/cqf/ruler/cr/r4/provider/ActivityDefinitionApplyProvider.java
+  switch (activityDefinition?.kind) {
+    case "ServiceRequest":
+      targetResource = {
+        ...targetResource,
+        subject: patientFhirReference,
+        intent: activityDefinition.intent,
+        code: activityDefinition.code,
+        bodySite: activityDefinition.bodySite,
+      };
+      break;
+    case "MedicationRequest":
+      targetResource = {
+        ...targetResource,
+        subject: patientFhirReference,
+        intent: activityDefinition.intent,
+        priority: activityDefinition.priority,
+        dosageInstruction: activityDefinition.dosage,
+      };
+      if (activityDefinition.productCodeableConcept !== undefined) {
+        targetResource.medicationCodeableConcept = activityDefinition.productCodeableConcept;
+      }
+      else if (activityDefinition.productReference !== undefined) {
+        targetResource.medicationReference = activityDefinition.productReference;
+      }
+      break;
+    case "SupplyRequest":
+      targetResource = {
+        ...targetResource,
+        quantity: activityDefinition.quantity,
+        itemCodeableConcept: activityDefinition.code,
+      };
+      break;
+    case "CommunicationRequest": {
+      targetResource = {
+        ...targetResource,
+        subject: patientFhirReference,
+      };
+
+      // Gather payloads
+      // https://github.com/DBCG/cqf-ruler/blob/v0.6.0/plugin/cr/src/main/java/org/opencds/cqf/ruler/cr/r4/provider/ActivityDefinitionApplyProvider.java#L386
+      // Note: The CQF-Ruler does not create multiple payloads
+      const payloads = [];
+      if (activityDefinition.code?.text !== undefined) {
+        payloads.push({ contentString: activityDefinition.code.text });
+      }
+      if (activityDefinition.relatedArtifact !== undefined) {
+        for (const relatedArtifact of activityDefinition.relatedArtifact) {
+          if (relatedArtifact.url !== undefined) {
+            payloads.push({ contentAttachment: { url: relatedArtifact.url, title: relatedArtifact.display }});
+          }
+        }
+      }
+      if (payloads.length > 0) {
+        targetResource.payload = payloads;
+      }
+
+      break;
+    }
+    case "Task": {
+      targetResource = {
+        ...targetResource,
+        intent: activityDefinition.intent,
+        for: patientFhirReference,
+        code: activityDefinition.code,
+      };
+      if (activityDefinition.code !== undefined) {
+        // https://github.com/DBCG/cqf-ruler/blob/v0.6.0/plugin/cr/src/main/java/org/opencds/cqf/ruler/cr/r4/provider/ActivityDefinitionApplyProvider.java#L422
+        // Note: The CQF-Ruler does not create multiple inputs
+        const inputs = [];
+        const baseInput = { type: activityDefinition.code };
+        
+        // Extension defined by CPG-on-FHIR for Questionnaire canonical URI
+        const collectWith = activityDefinition.extension?.find(ext => 
+          ext.url === 'http://hl7.org/fhir/uv/cpg/StructureDefinition/cpg-collectWith');
+        if (collectWith !== undefined) {
+          inputs.push({
+            ...baseInput,
+            valueCanonical: collectWith.valueCanonical,
+          });
+        }
+        
+        if (activityDefinition.relatedArtifact !== undefined) {
+          for (const relatedArtifact of activityDefinition.relatedArtifact) {
+            if (relatedArtifact.url !== undefined) {
+              inputs.push({
+                ...baseInput,
+                valueAttachment: { url: relatedArtifact.url, title: relatedArtifact.display },
+              });
+            }
+          }
+        }
+        
+        targetResource.input = inputs;
+      }
+      break;
+    }
+    default:
+      targetResource = {
+        ...targetResource,
+        subject: patientFhirReference,
+        code: activityDefinition?.code,
+        timing: activityDefinition?.timing,
+        doNotPerform: activityDefinition?.doNotPerform,
+      };
+      break;
+  }
+
+  targetResource = pruneNull(targetResource);
 
   /*----------------------------------------------------------------------------
     4. Resolve the participant element based on the user in context

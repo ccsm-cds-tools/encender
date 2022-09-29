@@ -647,3 +647,117 @@ describe('Merge Nested Actions Tests', async function() {
   });
 
 });
+
+describe('ActivityDefinition.kind Tests', async function() {
+
+  it('Should copy over the correct structural elements for a ServiceRequest', async function() {
+    let resolver = simpleResolver('./test/fixtures/activityResources.json');
+    const serviceReqAD = resolver('ActivityDefinition/kindIsServiceRequest')[0];
+    const patientReference = 'Patient/1';
+
+    const targetResource = await applyActivity(serviceReqAD, patientReference, resolver);
+
+    targetResource.subject.reference.should.equal(patientReference);
+    targetResource.intent.should.equal(serviceReqAD.intent);
+    targetResource.code.should.deep.equal(serviceReqAD.code);
+    targetResource.bodySite.should.deep.equal(serviceReqAD.bodySite);
+
+  });
+
+  it('Should copy over the correct structural elements for a MedicationRequest', async function() {
+    let resolver = simpleResolver('./test/fixtures/activityResources.json');
+    const medicationReqAD = resolver('ActivityDefinition/kindIsMedicationRequest')[0];
+    const patientReference = 'Patient/1';
+
+    const targetResource = await applyActivity(medicationReqAD, patientReference, resolver);
+
+    targetResource.priority.should.equal(medicationReqAD.priority);
+    targetResource.dosageInstruction.should.deep.equal(medicationReqAD.dosage);
+    targetResource.medicationCodeableConcept.should.deep.equal(medicationReqAD.productCodeableConcept);
+
+  });
+
+  it('Should copy over the correct structural elements for a SupplyRequest', async function() {
+    let resolver = simpleResolver('./test/fixtures/activityResources.json');
+    const supplyReqAD = resolver('ActivityDefinition/kindIsSupplyRequest')[0];
+    const patientReference = 'Patient/1';
+
+    const targetResource = await applyActivity(supplyReqAD, patientReference, resolver);
+
+    targetResource.quantity.should.deep.equal(supplyReqAD.quantity);
+    targetResource.itemCodeableConcept.should.deep.equal(supplyReqAD.code);
+
+  });
+
+  it('Should copy over the correct structural elements for a CommunicationRequest', async function() {
+    let resolver = simpleResolver('./test/fixtures/activityResources.json');
+    const communicationReqAD = resolver('ActivityDefinition/kindIsCommunicationRequest')[0];
+    const patientReference = 'Patient/1';
+
+    const targetResource = await applyActivity(communicationReqAD, patientReference, resolver);
+
+    targetResource.payload.should.have.deep.members([
+      {
+        "contentString": "I'm nothing"
+      },
+      {
+        "contentAttachment": {
+            "url": "https://example.com/exampleDocumentationSite.html",
+            "title": "Documentation"
+        }
+      },
+      {
+        "contentAttachment": {
+            "url": "https://example.com/exampleJustificationSite.html",
+            "title": "Justification"
+        }
+      }
+    ]);
+
+  });
+
+  it('Should copy over the correct structural elements for a Task', async function() {
+    let resolver = simpleResolver('./test/fixtures/activityResources.json');
+    const taskAD = resolver('ActivityDefinition/kindIsTask')[0];
+    const patientReference = 'Patient/1';
+
+    const targetResource = await applyActivity(taskAD, patientReference, resolver);
+
+    targetResource.for.reference.should.equal(patientReference);
+    targetResource.input.should.have.deep.members([
+      {
+        "type": taskAD.code,
+        "valueAttachment": {
+          "url": "https://example.com/exampleDocumentationSite.html",
+          "title": "Documentation"
+        }
+      },
+      {
+        "type": taskAD.code,
+        "valueAttachment": {
+          "url": "https://example.com/exampleJustificationSite.html",
+          "title": "Justification"
+        }
+      },
+    ]);
+
+  });
+
+  it('Should copy over the correct structural elements for a Task with a cpg-collectwith extension', async function() {
+    let resolver = simpleResolver('./test/fixtures/activityResources.json');
+    const taskAD = resolver('ActivityDefinition/kindIsTaskWithCpgCollectWith')[0];
+    const patientReference = 'Patient/1';
+
+    const targetResource = await applyActivity(taskAD, patientReference, resolver);
+
+    targetResource.for.reference.should.equal(patientReference);
+    targetResource.input.should.have.deep.members([
+      {
+        "type": taskAD.code,
+        "valueCanonical": "https://example-fhir-api.com/path/to/fhir/api/exampleQuestionnaire"
+      }
+    ]);
+
+  });
+
+});

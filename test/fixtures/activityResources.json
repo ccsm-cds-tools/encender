@@ -39,5 +39,164 @@
       ],
       "text": "I'm nothing"
     }
+  },
+  {
+    "resourceType": "ActivityDefinition",
+    "id": "kindIsServiceRequest",
+    "status": "draft",
+    "url": "https://example-fhir-api.com/path/to/fhir/api/ActivityDefinition/kindIsServiceRequest",
+    "kind": "ServiceRequest",
+    "code": {
+      "coding": [
+        {
+          "system": "http://snomed.info/sct",
+          "code": "260385009",
+          "display": "Negative"
+        }
+      ],
+      "text": "I'm nothing"
+    },
+    "intent": "proposal",
+    "bodySite": [
+      {
+        "coding": [
+          {
+            "system": "http://snomed.info/sct",
+            "code": "260385009",
+            "display": "Negative"
+          }
+        ],
+        "text": "I'm nothing"
+      }
+    ]
+  },
+  {
+    "resourceType": "ActivityDefinition",
+    "id": "kindIsMedicationRequest",
+    "status": "draft",
+    "url": "https://example-fhir-api.com/path/to/fhir/api/ActivityDefinition/kindIsMedicationRequest",
+    "kind": "MedicationRequest",
+    "priority": "routine",
+    "productCodeableConcept": {
+      "coding": [
+        {
+          "system": "http://snomed.info/sct",
+          "code": "260385009",
+          "display": "Negative"
+        }
+      ],
+      "text": "I'm nothing"
+    },
+    "dosage": [
+      {
+        "sequence" : 1,
+        "text" : "First sequence dosage"
+      },
+      {
+        "sequence" : 2,
+        "text" : "Second sequence dosage"
+      }
+    ]
+  },
+  {
+    "resourceType": "ActivityDefinition",
+    "id": "kindIsSupplyRequest",
+    "status": "draft",
+    "url": "https://example-fhir-api.com/path/to/fhir/api/ActivityDefinition/kindIsSupplyRequest",
+    "kind": "SupplyRequest",
+    "code": {
+      "coding": [
+        {
+          "system": "http://snomed.info/sct",
+          "code": "260385009",
+          "display": "Negative"
+        }
+      ],
+      "text": "I'm nothing"
+    },
+    "quantity": {
+      "value": "0"
+    }
+  },
+  {
+    "resourceType": "ActivityDefinition",
+    "id": "kindIsCommunicationRequest",
+    "status": "draft",
+    "url": "https://example-fhir-api.com/path/to/fhir/api/ActivityDefinition/kindIsCommunicationRequest",
+    "kind": "CommunicationRequest",
+    "relatedArtifact": [
+      {
+        "type": "documentation",
+        "url": "https://example.com/exampleDocumentationSite.html",
+        "display": "Documentation"
+      },
+      {
+        "type": "justification",
+        "url": "https://example.com/exampleJustificationSite.html",
+        "display": "Justification"
+      }
+    ],
+    "code": {
+      "coding": [
+        {
+          "system": "http://snomed.info/sct",
+          "code": "260385009",
+          "display": "Negative"
+        }
+      ],
+      "text": "I'm nothing"
+    }
+  },
+  {
+    "resourceType": "ActivityDefinition",
+    "id": "kindIsTask",
+    "status": "draft",
+    "url": "https://example-fhir-api.com/path/to/fhir/api/ActivityDefinition/kindIsTask",
+    "kind": "Task",
+    "relatedArtifact": [
+      {
+        "type": "documentation",
+        "url": "https://example.com/exampleDocumentationSite.html",
+        "display": "Documentation"
+      },
+      {
+        "type": "justification",
+        "url": "https://example.com/exampleJustificationSite.html",
+        "display": "Justification"
+      }
+    ],
+    "code": {
+      "coding": [
+        {
+          "system": "http://snomed.info/sct",
+          "code": "260385009",
+          "display": "Negative"
+        }
+      ],
+      "text": "I'm nothing"
+    }
+  },
+  {
+    "resourceType": "ActivityDefinition",
+    "id": "kindIsTaskWithCpgCollectWith",
+    "extension": [
+      {
+        "url": "http://hl7.org/fhir/uv/cpg/StructureDefinition/cpg-collectWith",
+        "valueCanonical": "https://example-fhir-api.com/path/to/fhir/api/exampleQuestionnaire"
+      }
+    ],
+    "status": "draft",
+    "url": "https://example-fhir-api.com/path/to/fhir/api/ActivityDefinition/kindIsTaskWithCpgCollectWith",
+    "kind": "Task",
+    "code": {
+      "coding": [
+        {
+          "system": "http://snomed.info/sct",
+          "code": "260385009",
+          "display": "Negative"
+        }
+      ],
+      "text": "I'm nothing"
+    }
   }
 ]
