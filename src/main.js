@@ -492,31 +492,31 @@ export async function processActions(actions, patientReference, resolver, aux, e
       targetResource = {
         ...targetResource,
         subject: patientFhirReference,
-        intent: activityDefinition.intent,
-        code: activityDefinition.code,
-        bodySite: activityDefinition.bodySite,
+        intent: activityDefinition?.intent,
+        code: activityDefinition?.code,
+        bodySite: activityDefinition?.bodySite,
       };
       break;
     case "MedicationRequest":
       targetResource = {
         ...targetResource,
         subject: patientFhirReference,
-        intent: activityDefinition.intent,
-        priority: activityDefinition.priority,
-        dosageInstruction: activityDefinition.dosage,
+        intent: activityDefinition?.intent,
+        priority: activityDefinition?.priority,
+        dosageInstruction: activityDefinition?.dosage,
       };
-      if (activityDefinition.productCodeableConcept !== undefined) {
-        targetResource.medicationCodeableConcept = activityDefinition.productCodeableConcept;
+      if (activityDefinition?.productCodeableConcept) {
+        targetResource.medicationCodeableConcept = activityDefinition?.productCodeableConcept;
       }
-      else if (activityDefinition.productReference !== undefined) {
-        targetResource.medicationReference = activityDefinition.productReference;
+      else if (activityDefinition?.productReference) {
+        targetResource.medicationReference = activityDefinition?.productReference;
       }
       break;
     case "SupplyRequest":
       targetResource = {
         ...targetResource,
-        quantity: activityDefinition.quantity,
-        itemCodeableConcept: activityDefinition.code,
+        quantity: activityDefinition?.quantity,
+        itemCodeableConcept: activityDefinition?.code,
       };
       break;
     case "CommunicationRequest": {
@@ -529,10 +529,10 @@ export async function processActions(actions, patientReference, resolver, aux, e
       // https://github.com/DBCG/cqf-ruler/blob/v0.6.0/plugin/cr/src/main/java/org/opencds/cqf/ruler/cr/r4/provider/ActivityDefinitionApplyProvider.java#L386
       // Note: The CQF-Ruler does not create multiple payloads
       const payloads = [];
-      if (activityDefinition.code?.text !== undefined) {
+      if (activityDefinition?.code?.text) {
         payloads.push({ contentString: activityDefinition.code.text });
       }
-      if (activityDefinition.relatedArtifact !== undefined) {
+      if (activityDefinition?.relatedArtifact) {
         for (const relatedArtifact of activityDefinition.relatedArtifact) {
           if (relatedArtifact.url !== undefined) {
             payloads.push({ contentAttachment: { url: relatedArtifact.url, title: relatedArtifact.display }});
@@ -548,18 +548,18 @@ export async function processActions(actions, patientReference, resolver, aux, e
     case "Task": {
       targetResource = {
         ...targetResource,
-        intent: activityDefinition.intent,
+        intent: activityDefinition?.intent,
         for: patientFhirReference,
-        code: activityDefinition.code,
+        code: activityDefinition?.code,
       };
-      if (activityDefinition.code !== undefined) {
+      if (activityDefinition?.code) {
         // https://github.com/DBCG/cqf-ruler/blob/v0.6.0/plugin/cr/src/main/java/org/opencds/cqf/ruler/cr/r4/provider/ActivityDefinitionApplyProvider.java#L422
         // Note: The CQF-Ruler does not create multiple inputs
         const inputs = [];
         const baseInput = { type: activityDefinition.code };
         
         // Extension defined by CPG-on-FHIR for Questionnaire canonical URI
-        const collectWith = activityDefinition.extension?.find(ext => 
+        const collectWith = activityDefinition?.extension?.find(ext => 
           ext.url === 'http://hl7.org/fhir/uv/cpg/StructureDefinition/cpg-collectWith');
         if (collectWith !== undefined) {
           inputs.push({
@@ -568,7 +568,7 @@ export async function processActions(actions, patientReference, resolver, aux, e
           });
         }
         
-        if (activityDefinition.relatedArtifact !== undefined) {
+        if (activityDefinition?.relatedArtifact) {
           for (const relatedArtifact of activityDefinition.relatedArtifact) {
             if (relatedArtifact.url !== undefined) {
               inputs.push({
@@ -627,7 +627,7 @@ export async function processActions(actions, patientReference, resolver, aux, e
     let cqlWorker = WorkerFactory();
     try {
       let [setupExecution, sendPatientBundle, evaluateExpression] = initialzieCqlWorker(cqlWorker, isNodeJs);
-      if (Array.isArray(activityDefinition.library)) {
+      if (Array.isArray(activityDefinition?.library)) {
         const libRef = activityDefinition.library[0];
   
         // Check aux for objects necessary for CQL execution
@@ -666,7 +666,7 @@ export async function processActions(actions, patientReference, resolver, aux, e
       }
 
       // Asynchronously evaluate all dynamicValues
-      const evaluatedValues = await Promise.all(activityDefinition.dynamicValue.map(async (dV) => {
+      const evaluatedValues = await Promise.all(activityDefinition?.dynamicValue.map(async (dV) => {
         if (dV?.expression?.language != 'text/cql') {
           throw new Error('Dynamic value specifies an unsupported expression language');
         }
