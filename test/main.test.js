@@ -226,7 +226,7 @@ describe('More Complex Conversion Tests', async function() {
         subject: { reference: 'Patient/1', display: '' },
         resourceType: 'ServiceRequest',
         status: 'option',
-        basedOn: { "reference": "https://example-fhir-api.com/path/to/fhir/api/ActivityDefinition/hasACode" },
+        basedOn: [{ "reference": "https://example-fhir-api.com/path/to/fhir/api/ActivityDefinition/hasACode" }],
         code: { 
           coding: [
             {
@@ -490,7 +490,7 @@ describe('CQL expression tests', async function() {
         subject: { reference: 'Patient/1', display: '' },
         resourceType: 'ServiceRequest',
         status: 'option',
-        basedOn: { "reference": "https://example-fhir-api.com/path/to/fhir/api/ActivityDefinition/hasACode" },
+        basedOn: [{ "reference": "https://example-fhir-api.com/path/to/fhir/api/ActivityDefinition/hasACode" }],
         code: { 
           coding: [{
             code: '10828004',
@@ -534,7 +534,7 @@ describe('CQL expression tests', async function() {
         subject: { reference: 'Patient/1', display: '' },
         resourceType: 'CommunicationRequest',
         status: 'option',
-        basedOn: { "reference": "https://example-fhir-api.com/path/to/fhir/api/ActivityDefinition/communicateString" },
+        basedOn: [{ "reference": "https://example-fhir-api.com/path/to/fhir/api/ActivityDefinition/communicateString" }],
         payload: [
           {
             contentString: "{\"coding\":[{\"system\":\"http://snomed.info/sct\",\"code\":\"10828004\",\"display\":\"Positive\"}],\"text\":\"I'm something\"}"
@@ -628,9 +628,9 @@ describe('Merge Nested Actions Tests', async function() {
           reference: 'Patient/1'
         },
         status: 'option',
-        basedOn: {
+        basedOn: [{
           reference: 'https://example-fhir-api.com/path/to/fhir/api/ActivityDefinition/hasACode'
-        },
+        }],
         code: {
           coding: [
             {

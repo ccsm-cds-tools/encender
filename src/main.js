@@ -482,7 +482,7 @@ export async function processActions(actions, patientReference, resolver, aux, e
   ----------------------------------------------------------------------------*/
   targetResource = {
     ...targetResource,
-    basedOn: { reference: activityDefinition?.url },
+    basedOn: [{ reference: activityDefinition?.url }],
   };
   
   // Mappings copied from the CQF-Ruler
