@@ -220,6 +220,7 @@ export async function processActions(actions, patientReference, resolver, aux, e
       id: act?.id ?? getId(),
       title: act?.title,
       description: act?.description,
+      documentation: act?.documentation,
       textEquivalent: act?.textEquivalent,
       groupingBehavior: act?.groupingBehavior,
       selectionBehavior: act?.selectionBehavior,
@@ -292,8 +293,8 @@ export async function processActions(actions, patientReference, resolver, aux, e
           applied = pruneNull({
             ...applied,
             title: act?.title ?? planDefinition?.title,
-            description: act?.description,
-            textEquivalent: act?.textEquivalent
+            description: act?.description ?? planDefinition?.description,
+            documentation: act?.documentation ?? planDefinition?.relatedArtifact
           });
 
           if (act?.dynamicValue) {
@@ -332,8 +333,8 @@ export async function processActions(actions, patientReference, resolver, aux, e
           applied = pruneNull({
             ...applied,
             title: act?.title ?? activityDefinition?.title,
-            description: act?.description,
-            textEquivalent: act?.textEquivalent
+            description: act?.description ?? activityDefinition?.description,
+            documentation: act?.documentation ?? activityDefinition?.relatedArtifact
           });
 
           if (act?.dynamicValue) {
@@ -366,8 +367,7 @@ export async function processActions(actions, patientReference, resolver, aux, e
           applied = pruneNull({
             ...applied,
             title: act?.title ?? questionnaire?.title,
-            description: act?.description ?? questionnaire?.description,
-            textEquivalent: act?.textEquivalent
+            description: act?.description ?? questionnaire?.description
           });
 
           // TODO: Consider what dynamicValue support would look like for a Questionnaire
