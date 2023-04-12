@@ -1,6 +1,6 @@
 {
   "name": "encender",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "type": "module",
   "description": "An asynchronous implementation of the FHIR $apply operation",
   "main": "./src/main.js",
@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@asymmetrik/fhir-json-schema-validator": "^0.9.8",
-    "cql-worker": "^1.1.4",
+    "cql-worker": "^1.1.6",
     "semver": "^6.3.0"
   }
 }
