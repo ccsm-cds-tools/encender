@@ -247,6 +247,7 @@ describe('More Complex Conversion Tests', async function() {
     const planDefinitionWithAnActivity = resolver('PlanDefinition/definitionOfAPlan')[0];
     const patientReference = 'Patient/1';
 
+
     const [CarePlan, RequestGroup, ...otherResources] = await applyPlan(planDefinitionWithAnActivity, patientReference, resolver);
 
     RequestGroup.action.should.deep.equal([
@@ -362,12 +363,11 @@ describe('CQL expression tests', async function() {
     let resolver = simpleResolver('./test/fixtures/applicabilityConditionResources.json');
     const truthyApplicabilityCondition = resolver('PlanDefinition/truthyApplicabilityCondition')[0];
     const patientReference = 'Patient/1';
-
     const [CarePlan, RequestGroup, ...otherResources] = await applyPlan(truthyApplicabilityCondition, patientReference, resolver);
 
     RequestGroup.action.should.deep.equal([
       {
-        id: '29',
+        id: '30',
         title: 'I am an unconditional action'
       },
       {
@@ -375,7 +375,7 @@ describe('CQL expression tests', async function() {
         id: '28',
         action: [
           {
-            id: '30',
+            id: '29',
             resource: { reference: 'CarePlan/31' }
           }
         ]
@@ -427,7 +427,7 @@ describe('CQL expression tests', async function() {
 
     RequestGroup.action.should.deep.equal([
       {
-        id: '44',
+        id: '45',
         title: 'I am an unconditional action'
       },
       {
@@ -435,7 +435,7 @@ describe('CQL expression tests', async function() {
         id: '43',
         action: [
           {
-            id: '45',
+            id: '44',
             resource: { reference: 'CarePlan/46' }
           }
         ]
@@ -446,6 +446,7 @@ describe('CQL expression tests', async function() {
 
   it('Should execute ten CQL expressions to evaulate ten applicability conditions (all true)', async function() {
     let resolver = simpleResolver('./test/fixtures/applicabilityConditionResources.json');
+    debugger
     const tenApplicabilityConditions = resolver('PlanDefinition/tenApplicabilityConditions')[0];
     const patientReference = 'Patient/1';
 
@@ -469,7 +470,7 @@ describe('CQL expression tests', async function() {
 
     RequestGroup.action.should.deep.equal([
       {
-        id: '55',
+        id: '56',
         title: 'I am an unconditional action'
       },
       {
@@ -477,7 +478,7 @@ describe('CQL expression tests', async function() {
         id: '54',
         action: [
           {
-            id: '56',
+            id: '55',
             resource: { reference: 'ServiceRequest/57' }
           }
         ]
@@ -513,7 +514,7 @@ describe('CQL expression tests', async function() {
 
     RequestGroup.action.should.deep.equal([
       {
-        id: '61',
+        id: '62',
         title: 'I am an unconditional action'
       },
       {
@@ -521,7 +522,7 @@ describe('CQL expression tests', async function() {
         id: '60',
         action: [
           {
-            id: '62',
+            id: '61',
             resource: { reference: 'CommunicationRequest/63' }
           }
         ]

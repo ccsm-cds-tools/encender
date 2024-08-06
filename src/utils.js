@@ -5,10 +5,17 @@ function* simpleGenerator() {
     yield n++;
 }
 
-let simpleCounter = simpleGenerator();
+
+const simpleCounter = simpleGenerator();
+
+let currentId = 0;
+export function getCurrentId (){
+  return currentId;
+}
 
 export function getIncrementalId() {
-  return simpleCounter.next().value.toString();
+    currentId = simpleCounter.next().value.toString()
+  return currentId;
 }
 
 // Removes null elements from an object.
