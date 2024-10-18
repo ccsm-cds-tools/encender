@@ -9,9 +9,6 @@ function* simpleGenerator() {
 const simpleCounter = simpleGenerator();
 
 let currentId = 0;
-export function getCurrentId (){
-  return currentId;
-}
 
 export function getIncrementalId() {
     currentId = simpleCounter.next().value.toString()

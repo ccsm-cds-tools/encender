@@ -740,18 +740,6 @@ export async function applyActivity(
     7. Apply any dynamicValue elements
   ----------------------------------------------------------------------------*/
   if (activityDefinition?.dynamicValue) {
-    // Define a new worker thread to evaluate these dynamicValue expressions
-
-    // if (Array.isArray(activityDefinition?.library)) {
-    //   const libRef = activityDefinition.library[0];
-
-    //   // Check aux for objects necessary for CQL execution
-    //   let elmJsonDependencies = aux.elmJsonDependencies ?? [];
-    //   const valueSetJson = aux.valueSetJson ?? {};
-    //   const cqlParameters = aux.cqlParameters ?? {};
-
-    //   const elmJsonKey = Object.keys(elmJsonDependencies).filter(e => libRef.includes(e))[0];
-    //   let elmJson = elmJsonDependencies[elmJsonKey];
 
     let patientResult =
       (await executeCQL(activityDefinition, patientReference, resolver, aux)) ||
