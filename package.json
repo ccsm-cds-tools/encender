@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@asymmetrik/fhir-json-schema-validator": "^0.9.8",
-    "cql-worker": "github:ccsm-cds-tools/cql-worker#add_evaluate_library",
+    "cql-worker": "1.1.8",
     "semver": "^6.3.0"
   }
 }
