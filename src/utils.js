@@ -8,11 +8,8 @@ function* simpleGenerator() {
 
 const simpleCounter = simpleGenerator();
 
-let currentId = 0;
-
-export function getIncrementalId() {
-    currentId = simpleCounter.next().value.toString()
-  return currentId;
+export function getIncrementalId() {   
+  return simpleCounter.next().value.toString();
 }
 
 // Removes null elements from an object.
