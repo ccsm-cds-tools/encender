@@ -6,6 +6,7 @@ function* simpleGenerator() {
 }
 
 let simpleCounter = simpleGenerator();
+
 export function getIncrementalId() {   
   return simpleCounter.next().value.toString();
 }
