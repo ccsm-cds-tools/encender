@@ -2,28 +2,27 @@ import { Worker as NodeWorker } from "worker_threads";
 import { createRequire } from "module";
 import { initialzieCqlWorker } from "cql-worker";
 
-import {
+import { 
   getIncrementalId,
   pruneNull,
   parseName,
-  getElmJsonFromLibrary,
-} from "./utils.js";
-import { PatientSource } from "cql-exec-fhir";
-import { validate } from "./validate.js";
-import { merge } from "./merge.js";
-
+  getElmJsonFromLibrary ,
+  getCurrentId
+} from './utils.js';
+import cql from 'cql-execution';
+import {PatientSource} from  'cql-exec-fhir';
+import { validate } from './validate.js';
+import { merge } from './merge.js';
+import fhirHelpersJson from './FHIRHelpers-4.0.1.json.js';
 import {
-  expandPathAndValue,
-  shouldTryToStringify,
-  transformChoicePaths,
-} from "./dynamic.js";
+  expandPathAndValue, 
+  shouldTryToStringify, 
+  transformChoicePaths
+} from './dynamic.js';
 
-const executeCQL = async (
-  libContainer = null,
-  patientReference = null,
-  resolver = null,
-  aux = {}
-) => {
+
+
+const  executeCQL = async (libContainer=null, patientReference=null, resolver=null, aux={}) => {
   let isNodeJs = aux?.isNodeJs ?? false;
   const WorkerFactory =
     aux?.WorkerFactory ??
@@ -77,14 +76,6 @@ const executeCQL = async (
           throw new Error("Cannot resolve referenced Library: " + libRef);
         }
       }
-      // let repository  = new cql.Repository({
-      //     'FHIRHelpers': fhirHelpersJson,
-      //     ...elmJsonDependencies
-      //   });
-
-      // let library = new cql.Library(elmJson, repository);
-      // let codeService = new cql.CodeService(valueSetJson);
-      // let executor = new cql.Executor(library, codeService, cqlParameters);
 
       await setupExecution(
         elmJson,
@@ -102,9 +93,6 @@ const executeCQL = async (
         }),
       };
       await sendPatientBundle(patientBundle);
-
-      let psource = new PatientSource.FHIRv401();
-      psource.loadBundles([patientBundle]);
       let results = await evaluateLibrary();
       cqlExecutionCache[libRef] = results;
       return results;
@@ -114,31 +102,17 @@ const executeCQL = async (
   } finally {
     cqlWorker?.terminate();
   }
-};
+}
 
-export { simpleResolver } from "./simpleResolver.js";
+export { simpleResolver } from './simpleResolver.js';
 
-export async function applyAndMerge(
-  planDefinition,
-  patientReference = null,
-  resolver = null,
-  aux = {}
-) {
-  let [CarePlan, RequestGroup, ...otherResources] = await applyPlan(
-    planDefinition,
-    patientReference,
-    resolver,
-    aux
-  );
+export async function applyAndMerge(planDefinition, patientReference=null, resolver=null, aux={}) { 
+  let [CarePlan,RequestGroup,...otherResources] = await applyPlan(planDefinition, patientReference, resolver, aux);
 
   RequestGroup = await merge(RequestGroup, otherResources);
   return [
     RequestGroup,
-    ...otherResources.filter(
-      (otr) =>
-        otr?.resourceType &&
-        ["CarePlan", "RequestGroup"].includes(otr.resourceType) === false
-    ),
+    ...otherResources.filter(otr => otr?.resourceType && ['CarePlan','RequestGroup'].includes(otr.resourceType) === false)
   ];
 }
 
@@ -150,12 +124,7 @@ export async function applyAndMerge(
  * @param {Object} aux - Auxiliary resources and services
  * @returns {Promise<Object[]>} Array of resources: CarePlan, RequestGroup, and otherResources
  */
-export async function applyPlan(
-  planDefinition,
-  patientReference = null,
-  resolver = null,
-  aux = {}
-) {
+export async function applyPlan(planDefinition, patientReference=null, resolver=null, aux={}) {
   /*---------------------------------------------------------------------------- 
     [Applying a PlanDefinition](https://www.hl7.org/fhir/plandefinition.html#12.18.3.3)
     1. Create a CarePlan resource focused on the Patient in context and linked to the PlanDefinition using the instantiates element
@@ -165,12 +134,7 @@ export async function applyPlan(
     5. Process each action element of the PlanDefinition
   ----------------------------------------------------------------------------*/
   // Validates the input parameters and returns the Patient resource if there are no issues
-  const Patient = await validate(
-    planDefinition,
-    patientReference,
-    resolver,
-    aux
-  );
+  const Patient = await validate(planDefinition, patientReference, resolver, aux);
 
   // Either use the provided ID generation function or just use a simple counter.
   const getId = aux?.getId ?? getIncrementalId;
@@ -180,15 +144,15 @@ export async function applyPlan(
   the PlanDefinition using the instantiates element
   ----------------------------------------------------------------------------*/
   let CarePlan = {
-    resourceType: "CarePlan",
+    resourceType: 'CarePlan',
     id: getId(),
     subject: {
-      reference: "Patient/" + Patient.id,
-      display: parseName(Patient?.name),
+      reference: 'Patient/' + Patient.id,
+      display: parseName(Patient?.name)
     },
     instantiatesCanonical: planDefinition.url,
-    intent: "proposal",
-    status: planDefinition?.status ?? "draft",
+    intent: 'proposal',
+    status: planDefinition?.status ?? 'draft'
   };
 
   /*----------------------------------------------------------------------------
@@ -203,8 +167,8 @@ export async function applyPlan(
   ----------------------------------------------------------------------------*/
   let RequestGroup = {
     ...CarePlan,
-    resourceType: "RequestGroup",
-    id: getId(),
+    resourceType: 'RequestGroup',
+    id: getId()
   };
 
   /*----------------------------------------------------------------------------
@@ -212,8 +176,8 @@ export async function applyPlan(
   ----------------------------------------------------------------------------*/
   CarePlan.activity = [
     {
-      reference: { reference: "RequestGroup/" + RequestGroup.id },
-    },
+      reference: { reference: 'RequestGroup/' + RequestGroup.id }
+    }
   ];
 
   /*----------------------------------------------------------------------------
@@ -222,24 +186,23 @@ export async function applyPlan(
   let processedActions = []; // Array to hold processed actions
   let otherResources = []; // Any resources created as part of action processing
 
-  let patientResult =
-    (await executeCQL(planDefinition, patientReference, resolver, aux)) || {};
+  let patientResult =await executeCQL(planDefinition, patientReference,resolver,aux) || {}; 
   let evaluateExpression = (expression) => {
-    return patientResult[expression];
-  };
-  // If there are actions defined in this PlanDefinition, process them asynchronously
-  if (planDefinition?.action) {
-    ({ processedActions, otherResources } = await processActions(
-      planDefinition.action,
-      patientReference,
-      resolver,
-      aux,
-      evaluateExpression
-    ));
-    RequestGroup.action = processedActions;
-  }
+      return patientResult[expression]    
+    }
+    // If there are actions defined in this PlanDefinition, process them asynchronously
+    if (planDefinition?.action) {
+      ({processedActions, otherResources} = await processActions(planDefinition.action, patientReference, resolver, aux, evaluateExpression));
+       RequestGroup.action = processedActions;
+    }
 
-  return [CarePlan, RequestGroup, ...otherResources];
+  
+  return [
+    CarePlan,
+    RequestGroup,
+    ...otherResources
+  ];
+    
 }
 
 /**
@@ -250,13 +213,7 @@ export async function applyPlan(
  * @param {Object} aux - Auxiliary resources and services
  * @returns {Object} Contains the applied actions as well as any generated resources
  */
-export async function processActions(
-  actions,
-  patientReference,
-  resolver,
-  aux,
-  evaluateExpression
-) {
+export async function processActions(actions, patientReference, resolver, aux, evaluateExpression) {
   /*----------------------------------------------------------------------------
     [Applying a PlanDefinition](https://www.hl7.org/fhir/plandefinition.html#12.18.3.3)
     Processing for each action proceeds according to the following steps:
@@ -289,221 +246,195 @@ export async function processActions(
   let otherResources = []; // Any resources created as part of action processing
 
   // Loop over the actions
-  await Promise.all(
-    actions.map(async (act) => {
-      // Copy over basic elements from the action definitions
-      // NOTE: This technically falls under 5.3, but should be done for both group and atomic actions
-      let applied = pruneNull({
-        id: act?.id ?? getId(),
-        title: act?.title,
-        description: act?.description,
-        documentation: act?.documentation,
-        textEquivalent: act?.textEquivalent,
-        groupingBehavior: act?.groupingBehavior,
-        selectionBehavior: act?.selectionBehavior,
-        requiredBehavior: act?.requiredBehavior,
-        precheckBehavior: act?.precheckBehavior,
-        cardinalityBehavior: act?.cardinalityBehavior,
-        // TODO: Copy of over timing and any other elements that make sense
-        // TODO: Carry over start and stop conditions
+  await Promise.all(actions.map(async (act) => {
+
+    // Copy over basic elements from the action definitions
+    // NOTE: This technically falls under 5.3, but should be done for both group and atomic actions
+    let applied = pruneNull({
+      id: act?.id ?? getId(),
+      title: act?.title,
+      description: act?.description,
+      documentation: act?.documentation,
+      textEquivalent: act?.textEquivalent,
+      groupingBehavior: act?.groupingBehavior,
+      selectionBehavior: act?.selectionBehavior,
+      requiredBehavior: act?.requiredBehavior,
+      precheckBehavior: act?.precheckBehavior,
+      cardinalityBehavior: act?.cardinalityBehavior
+      // TODO: Copy of over timing and any other elements that make sense
+      // TODO: Carry over start and stop conditions
+    });
+   
+    // 5.1. Evaluate applicability conditions
+    let applyThisCondition = true;
+    if (act?.condition) {
+      // TODO: Check that these are applicability conditions
+      const evaluatedConditions = act.condition.map( (c) => {
+        if (c?.expression?.language != 'text/cql') {
+          throw new Error('Action condition specifies an unsupported expression language');
+        }
+        const expression = c.expression.expression;
+        const value =  evaluateExpression(expression);
+        return value;
+        // TODO: Throw error if expression can't be evaluated (two cases)
       });
 
-      // 5.1. Evaluate applicability conditions
-      let applyThisCondition = true;
-      if (act?.condition) {
-        // TODO: Check that these are applicability conditions
-        const evaluatedConditions = act.condition.map((c) => {
-          if (c?.expression?.language != "text/cql") {
-            throw new Error(
-              "Action condition specifies an unsupported expression language"
-            );
-          }
-          const expression = c.expression.expression;
-          const value = evaluateExpression(expression);
-          return value;
-          // TODO: Throw error if expression can't be evaluated (two cases)
-        });
+      // NOTE: Multiple conditions are ANDed together
+      // https://www.hl7.org/fhir/plandefinition-definitions.html#PlanDefinition.action.condition
+      applyThisCondition = applyThisCondition && evaluatedConditions.reduce((acc,ec) => acc && ec, true);
 
-        // NOTE: Multiple conditions are ANDed together
-        // https://www.hl7.org/fhir/plandefinition-definitions.html#PlanDefinition.action.condition
-        applyThisCondition =
-          applyThisCondition &&
-          evaluatedConditions.reduce((acc, ec) => acc && ec, true);
-      }
+    }
 
-      if (applyThisCondition) {
-        // 5.2. Determine if action is a group or atomic
-        const def = act?.definitionCanonical;
-        if (def) {
-          // 5.3. If there is a definition we assume this action is atomic
+    if (applyThisCondition) {
 
-          let evaluatedValues = [];
-          if (act?.dynamicValue) {
-            // Asynchronously evaluate all dynamicValues
-            evaluatedValues = act.dynamicValue.map((dV) => {
-              if (dV?.expression?.language != "text/cql") {
-                throw new Error(
-                  "Dynamic value specifies an unsupported expression language"
-                );
-              }
-              const value = evaluateExpression(dV.expression.expression);
-              return {
-                path: dV.path,
-                evaluated: value,
-              };
-              // TODO: Throw error if expression can't be evaluated (two cases)
-            });
-          }
+      // 5.2. Determine if action is a group or atomic
+      const def = act?.definitionCanonical;
+      if (def) {
+        // 5.3. If there is a definition we assume this action is atomic
 
-          if (/PlanDefinition/.test(def)) {
-            // If this is a PlanDefinition, resolve it so we can apply it
-            const planDefinition = (await resolver(def))[0];
-            // NOTE: Recursive function call
-            let [CarePlan, RequestGroup, ...moreResources] = await applyPlan(
-              planDefinition,
-              patientReference,
-              resolver,
-              aux
-            );
-
-            // Link the generated CarePlan's id via the resource element
-            applied.resource = {
-              reference: "CarePlan/" + CarePlan.id,
-            };
-
-            // Set the status of the target resource to option
-            CarePlan.status = "option";
-
-            // Apply any overrides based on the elements of the action such as title, description, and dynamicValue.
-            // NOTE: Action takes precedence over PlanDefinition
-            applied = pruneNull({
-              ...applied,
-              title: act?.title ?? planDefinition?.title,
-              description: act?.description ?? planDefinition?.description,
-              documentation:
-                act?.documentation ?? planDefinition?.relatedArtifact,
-            });
-
-            if (act?.dynamicValue) {
-              // Copy the values over to the target resourced
-              CarePlan = evaluatedValues.reduce((acc, cv) => {
-                let path = transformChoicePaths("CarePlan", cv.path);
-                let value = shouldTryToStringify(cv.path, cv.evaluated)
-                  ? JSON.stringify(cv.evaluated)
-                  : cv.evaluated;
-                let append = expandPathAndValue(path, value);
-                return {
-                  ...acc,
-                  ...append,
-                };
-              }, CarePlan);
+        let evaluatedValues = [];
+        if (act?.dynamicValue) {
+          // Asynchronously evaluate all dynamicValues
+          evaluatedValues = act.dynamicValue.map( (dV) => {
+            if (dV?.expression?.language != 'text/cql') {
+              throw new Error('Dynamic value specifies an unsupported expression language');
             }
-
-            // Bubble up the resources which were generated by this apply operation
-            otherResources.push(CarePlan);
-            otherResources.push(RequestGroup);
-            moreResources.forEach((mr) => otherResources.push(mr));
-          } else if (/ActivityDefinition/.test(def)) {
-            // If this is an ActivityDefinition, resolve it so we can apply it
-            const activityDefinition = (await resolver(def))[0];
-            let targetResource = await applyActivity(
-              activityDefinition,
-              patientReference,
-              resolver,
-              aux
-            );
-
-            // Link the generated CarePlan's id via the resource element
-            applied.resource = {
-              reference: targetResource.resourceType + "/" + targetResource.id,
+            const value =  evaluateExpression(dV.expression.expression);
+            return {
+              path: dV.path,
+              evaluated: value
             };
-
-            // Set the status of the target resource to option
-            targetResource.status = "option";
-
-            // Apply any overrides based on the elements of the action such as title, description, and dynamicValue.
-            // NOTE: [PlanDefinition takes precedence over ActivityDefinition](https://www.hl7.org/fhir/plandefinition.html#12.18.3.4)
-            applied = pruneNull({
-              ...applied,
-              title: act?.title ?? activityDefinition?.title,
-              description: act?.description ?? activityDefinition?.description,
-              documentation:
-                act?.documentation ?? activityDefinition?.relatedArtifact,
-            });
-
-            if (act?.dynamicValue) {
-              // Copy the values over to the target resource
-              targetResource = evaluatedValues.reduce((acc, cv) => {
-                let path = transformChoicePaths(
-                  targetResource.resourceType,
-                  cv.path
-                );
-                let value = shouldTryToStringify(cv.path, cv.evaluated)
-                  ? JSON.stringify(cv.evaluated)
-                  : cv.evaluated;
-                let append = expandPathAndValue(path, value);
-                return {
-                  ...acc,
-                  ...append,
-                };
-              }, targetResource);
-            }
-
-            // Bubble up the resources which were generated by this apply operation
-            otherResources.push(targetResource);
-          } else if (/Questionnaire/.test(def)) {
-            // If this is an Questionnaire, resolve it so we can apply it
-            const questionnaire = (await resolver(def))[0];
-
-            // Link the Questionnaire's id via the resource element
-            applied.resource = {
-              reference: questionnaire.resourceType + "/" + questionnaire.id,
-            };
-
-            // Apply any overrides based on the elements of the action such as title, description, and dynamicValue.
-            // NOTE: [PlanDefinition takes precedence over ActivityDefinition](https://www.hl7.org/fhir/plandefinition.html#12.18.3.4)
-            applied = pruneNull({
-              ...applied,
-              title: act?.title ?? questionnaire?.title,
-              description: act?.description ?? questionnaire?.description,
-            });
-
-            // TODO: Consider what dynamicValue support would look like for a Questionnaire
-
-            // Bubble up the resources which were generated by this apply operation
-            otherResources.push(questionnaire);
-          }
-        } else if (act?.action) {
-          // 5.4. If there are sub-actions then we assume this is a group
-
-          // NOTE: Recursive function call
-          const {
-            processedActions: subActions,
-            otherResources: moreResources,
-          } = await processActions(
-            act.action,
-            patientReference,
-            resolver,
-            aux,
-            evaluateExpression
-          );
-
-          // Bubble up the sub-actions and any resources which were created by processing them
-          applied.action = subActions;
-          moreResources.forEach((mr) => otherResources.push(mr));
-        } else {
-          // Don't have a definition and don't have sub-actions
-          // TODO: Determine if there is anything we need to do for this case
+            // TODO: Throw error if expression can't be evaluated (two cases)
+          });
         }
 
-        // Add the applied action to the processed array
-        processedActions.push(applied);
+        if (/PlanDefinition/.test(def)) {
+          // If this is a PlanDefinition, resolve it so we can apply it
+          const planDefinition = ( await resolver(def) )[0];
+          // NOTE: Recursive function call
+          let [CarePlan, RequestGroup, ...moreResources] = await applyPlan(planDefinition, patientReference, resolver, aux);
+
+          // Link the generated CarePlan's id via the resource element
+          applied.resource = {
+            reference: 'CarePlan/' + CarePlan.id
+          };
+
+          // Set the status of the target resource to option
+          CarePlan.status = 'option';
+          
+          // Apply any overrides based on the elements of the action such as title, description, and dynamicValue.
+          // NOTE: Action takes precedence over PlanDefinition
+          applied = pruneNull({
+            ...applied,
+            title: act?.title ?? planDefinition?.title,
+            description: act?.description ?? planDefinition?.description,
+            documentation: act?.documentation ?? planDefinition?.relatedArtifact
+          });
+
+          if (act?.dynamicValue) {
+            // Copy the values over to the target resourced
+            CarePlan = evaluatedValues.reduce((acc, cv) => {
+              let path = transformChoicePaths('CarePlan', cv.path);
+              let value = shouldTryToStringify(cv.path, cv.evaluated) ? JSON.stringify(cv.evaluated) : cv.evaluated;
+              let append = expandPathAndValue(path, value);
+              return {
+                ...acc,
+                ...append
+              };
+            }, CarePlan);
+          }
+
+          // Bubble up the resources which were generated by this apply operation
+          otherResources.push(CarePlan);
+          otherResources.push(RequestGroup);
+          moreResources.forEach(mr => otherResources.push(mr));
+
+        } else if (/ActivityDefinition/.test(def)) {
+          // If this is an ActivityDefinition, resolve it so we can apply it
+          const activityDefinition = ( await resolver(def) )[0];
+          let targetResource = await applyActivity(activityDefinition, patientReference, resolver, aux);
+
+          // Link the generated CarePlan's id via the resource element
+          applied.resource = {
+            reference: targetResource.resourceType + '/' + targetResource.id
+          };
+
+          // Set the status of the target resource to option
+          targetResource.status = 'option';
+
+          // Apply any overrides based on the elements of the action such as title, description, and dynamicValue.
+          // NOTE: [PlanDefinition takes precedence over ActivityDefinition](https://www.hl7.org/fhir/plandefinition.html#12.18.3.4)
+          applied = pruneNull({
+            ...applied,
+            title: act?.title ?? activityDefinition?.title,
+            description: act?.description ?? activityDefinition?.description,
+            documentation: act?.documentation ?? activityDefinition?.relatedArtifact
+          });
+
+          if (act?.dynamicValue) {
+            // Copy the values over to the target resource
+            targetResource = evaluatedValues.reduce((acc, cv) => {
+              let path = transformChoicePaths(targetResource.resourceType, cv.path);
+              let value = shouldTryToStringify(cv.path, cv.evaluated) ? JSON.stringify(cv.evaluated) : cv.evaluated;
+              let append = expandPathAndValue(path, value);
+              return {
+                ...acc,
+                ...append
+              };
+            }, targetResource);
+          }
+
+          // Bubble up the resources which were generated by this apply operation
+          otherResources.push(targetResource);
+
+        } else if (/Questionnaire/.test(def)) {
+          // If this is an Questionnaire, resolve it so we can apply it
+          const questionnaire = ( await resolver(def) )[0];
+
+          // Link the Questionnaire's id via the resource element
+          applied.resource = {
+            reference: questionnaire.resourceType + '/' + questionnaire.id
+          };
+
+          // Apply any overrides based on the elements of the action such as title, description, and dynamicValue.
+          // NOTE: [PlanDefinition takes precedence over ActivityDefinition](https://www.hl7.org/fhir/plandefinition.html#12.18.3.4)
+          applied = pruneNull({
+            ...applied,
+            title: act?.title ?? questionnaire?.title,
+            description: act?.description ?? questionnaire?.description
+          });
+
+          // TODO: Consider what dynamicValue support would look like for a Questionnaire
+
+          // Bubble up the resources which were generated by this apply operation
+          otherResources.push(questionnaire);
+
+        }
+
+      } else if (act?.action) {
+        // 5.4. If there are sub-actions then we assume this is a group
+
+        // NOTE: Recursive function call
+        const {processedActions: subActions, otherResources: moreResources} = await
+          processActions(act.action, patientReference, resolver, aux, evaluateExpression);
+
+        // Bubble up the sub-actions and any resources which were created by processing them
+        applied.action = subActions;
+        moreResources.forEach(mr => otherResources.push(mr));
+
+      } else {
+        // Don't have a definition and don't have sub-actions
+        // TODO: Determine if there is anything we need to do for this case
       }
-    })
-  );
+
+      // Add the applied action to the processed array
+      processedActions.push(applied);
+
+    }
+  }));
   return {
     processedActions: processedActions,
-    otherResources: otherResources, // Any resources created as part of action processing
+    otherResources: otherResources // Any resources created as part of action processing
   };
 }
 
@@ -515,12 +446,8 @@ export async function processActions(
  * @param {Object} aux - Auxiliary resources and services
  * @returns {Object} The requested resource
  */
-export async function applyActivity(
-  activityDefinition,
-  patientReference = null,
-  resolver = null,
-  aux = {}
-) {
+ export async function applyActivity(activityDefinition, patientReference=null, resolver=null, aux={}) {
+
   /*---------------------------------------------------------------------------- 
     [Applying an ActivityDefinition](https://www.hl7.org/fhir/activitydefinition.html#12.17.3.3)
     1. Create the target resource of the type specified by the kind element and focused on the Patient in context
@@ -533,12 +460,7 @@ export async function applyActivity(
   ----------------------------------------------------------------------------*/
 
   // Validates the input parameters and returns the Patient resource if there are no issues
-  const Patient = await validate(
-    activityDefinition,
-    patientReference,
-    resolver,
-    aux
-  );
+  const Patient = await validate(activityDefinition, patientReference, resolver, aux);
 
   // Either use the provided ID generation function or just use a simple counter.
   const getId = aux?.getId ?? getIncrementalId;
@@ -547,40 +469,39 @@ export async function applyActivity(
     1. Create the target resource of the type specified by the kind element and focused on the Patient in context
   ----------------------------------------------------------------------------*/
   let targetResource = {
-    id: getId(),
+    id: getId()
   };
 
   let patientFhirReference = {
-    reference: "Patient/" + Patient.id,
-    display: parseName(Patient?.name),
+    reference: 'Patient/' + Patient.id,
+    display: parseName(Patient?.name)
   };
-
+  
   // https://www.hl7.org/fhir/valueset-request-resource-types.html
   const requestResourceTypes = [
-    "Appointment",
-    "AppointmentResponse",
-    "CarePlan",
-    "Claim",
-    "CommunicationRequest",
-    "Contract",
-    "DeviceRequest",
-    "EnrollmentRequest",
-    "ImmunizationRecommendation",
-    "MedicationRequest",
-    "NutritionOrder",
-    "ServiceRequest",
-    "SupplyRequest",
-    "Task",
-    "VisionPrescription",
+    'Appointment',
+    'AppointmentResponse',
+    'CarePlan',
+    'Claim',
+    'CommunicationRequest',
+    'Contract',
+    'DeviceRequest',
+    'EnrollmentRequest',
+    'ImmunizationRecommendation',
+    'MedicationRequest',
+    'NutritionOrder',
+    'ServiceRequest',
+    'SupplyRequest',
+    'Task',
+    'VisionPrescription'
   ];
   if (requestResourceTypes.includes(activityDefinition?.kind)) {
     targetResource.resourceType = activityDefinition.kind;
   } else {
-    let errMsg =
-      "ActivityDefinition.kind must be one of the following resources";
-    requestResourceTypes.forEach((rtp, ind) => {
-      if (ind == 0) errMsg = errMsg + ": " + rtp;
-      else errMsg = errMsg + ", " + rtp;
+    let errMsg = 'ActivityDefinition.kind must be one of the following resources';
+    requestResourceTypes.forEach((rtp,ind) => {
+      if (ind==0) errMsg = errMsg + ': ' + rtp;
+      else errMsg = errMsg + ', ' + rtp;
     });
     throw new Error(errMsg);
   }
@@ -588,7 +509,7 @@ export async function applyActivity(
   /*----------------------------------------------------------------------------
     2. Set the status of the target resource to draft
   ----------------------------------------------------------------------------*/
-  targetResource.status = "draft";
+  targetResource.status = 'draft';
 
   /*----------------------------------------------------------------------------
     3. Apply the structural elements of the ActivityDefinition to the target resource such as code, timing, doNotPerform, product, quantity, dosage, and so on
@@ -597,7 +518,7 @@ export async function applyActivity(
     ...targetResource,
     basedOn: [{ reference: activityDefinition?.url }],
   };
-
+  
   // Mappings copied from the CQF-Ruler
   // https://github.com/DBCG/cqf-ruler/blob/v0.6.0/plugin/cr/src/main/java/org/opencds/cqf/ruler/cr/r4/provider/ActivityDefinitionApplyProvider.java
   switch (activityDefinition?.kind) {
@@ -619,11 +540,10 @@ export async function applyActivity(
         dosageInstruction: activityDefinition?.dosage,
       };
       if (activityDefinition?.productCodeableConcept) {
-        targetResource.medicationCodeableConcept =
-          activityDefinition?.productCodeableConcept;
-      } else if (activityDefinition?.productReference) {
-        targetResource.medicationReference =
-          activityDefinition?.productReference;
+        targetResource.medicationCodeableConcept = activityDefinition?.productCodeableConcept;
+      }
+      else if (activityDefinition?.productReference) {
+        targetResource.medicationReference = activityDefinition?.productReference;
       }
       break;
     case "SupplyRequest":
@@ -649,12 +569,7 @@ export async function applyActivity(
       if (activityDefinition?.relatedArtifact) {
         for (const relatedArtifact of activityDefinition.relatedArtifact) {
           if (relatedArtifact.url !== undefined) {
-            payloads.push({
-              contentAttachment: {
-                url: relatedArtifact.url,
-                title: relatedArtifact.display,
-              },
-            });
+            payloads.push({ contentAttachment: { url: relatedArtifact.url, title: relatedArtifact.display }});
           }
         }
       }
@@ -676,34 +591,28 @@ export async function applyActivity(
         // Note: The CQF-Ruler does not create multiple inputs
         const inputs = [];
         const baseInput = { type: activityDefinition.code };
-
+        
         // Extension defined by CPG-on-FHIR for Questionnaire canonical URI
-        const collectWith = activityDefinition?.extension?.find(
-          (ext) =>
-            ext.url ===
-            "http://hl7.org/fhir/uv/cpg/StructureDefinition/cpg-collectWith"
-        );
+        const collectWith = activityDefinition?.extension?.find(ext => 
+          ext.url === 'http://hl7.org/fhir/uv/cpg/StructureDefinition/cpg-collectWith');
         if (collectWith !== undefined) {
           inputs.push({
             ...baseInput,
             valueCanonical: collectWith.valueCanonical,
           });
         }
-
+        
         if (activityDefinition?.relatedArtifact) {
           for (const relatedArtifact of activityDefinition.relatedArtifact) {
             if (relatedArtifact.url !== undefined) {
               inputs.push({
                 ...baseInput,
-                valueAttachment: {
-                  url: relatedArtifact.url,
-                  title: relatedArtifact.display,
-                },
+                valueAttachment: { url: relatedArtifact.url, title: relatedArtifact.display },
               });
             }
           }
         }
-
+        
         targetResource.input = inputs;
       }
       break;
@@ -740,38 +649,45 @@ export async function applyActivity(
     7. Apply any dynamicValue elements
   ----------------------------------------------------------------------------*/
   if (activityDefinition?.dynamicValue) {
+    // Define a new worker thread to evaluate these dynamicValue expressions
+  
+      // if (Array.isArray(activityDefinition?.library)) {
+      //   const libRef = activityDefinition.library[0];
+  
+      //   // Check aux for objects necessary for CQL execution
+      //   let elmJsonDependencies = aux.elmJsonDependencies ?? [];
+      //   const valueSetJson = aux.valueSetJson ?? {};
+      //   const cqlParameters = aux.cqlParameters ?? {};
+  
+      //   const elmJsonKey = Object.keys(elmJsonDependencies).filter(e => libRef.includes(e))[0];
+      //   let elmJson = elmJsonDependencies[elmJsonKey];
+  
+      let patientResult = await executeCQL(activityDefinition, patientReference,resolver,aux) || {}; 
+      // Asynchronously evaluate all dynamicValues
+      const evaluatedValues = activityDefinition?.dynamicValue.map( (dV) => {
+        if (dV?.expression?.language != 'text/cql') {
+          throw new Error('Dynamic value specifies an unsupported expression language');
+        }
+        const value = patientResult[dV.expression.expression];
+        return {
+          path: dV.path,
+          evaluated: value
+        };
+        // TODO: Throw error if expression can't be evaluated (two cases)
+      });
 
-    let patientResult =
-      (await executeCQL(activityDefinition, patientReference, resolver, aux)) ||
-      {};
-    // Asynchronously evaluate all dynamicValues
-    const evaluatedValues = activityDefinition?.dynamicValue.map((dV) => {
-      if (dV?.expression?.language != "text/cql") {
-        throw new Error(
-          "Dynamic value specifies an unsupported expression language"
-        );
-      }
-      const value = patientResult[dV.expression.expression];
-      return {
-        path: dV.path,
-        evaluated: value,
-      };
-      // TODO: Throw error if expression can't be evaluated (two cases)
-    });
-
-    // Copy the values over to the target resource
-    targetResource = evaluatedValues.reduce((acc, cv) => {
-      let path = transformChoicePaths(targetResource.resourceType, cv.path);
-      let value = shouldTryToStringify(cv.path, cv.evaluated)
-        ? JSON.stringify(cv.evaluated)
-        : cv.evaluated;
-      let append = expandPathAndValue(path, value);
-      return {
-        ...acc,
-        ...append,
-      };
-    }, targetResource);
-  }
+      // Copy the values over to the target resource
+      targetResource = evaluatedValues.reduce((acc, cv) => {
+        let path = transformChoicePaths(targetResource.resourceType, cv.path);
+        let value = shouldTryToStringify(cv.path, cv.evaluated) ? JSON.stringify(cv.evaluated) : cv.evaluated;
+        let append = expandPathAndValue(path, value);
+        return {
+          ...acc,
+          ...append
+        };
+      }, targetResource);
+    } 
 
   return targetResource;
+
 }
