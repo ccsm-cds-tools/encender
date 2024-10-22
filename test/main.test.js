@@ -446,7 +446,6 @@ describe('CQL expression tests', async function() {
 
   it('Should execute ten CQL expressions to evaulate ten applicability conditions (all true)', async function() {
     let resolver = simpleResolver('./test/fixtures/applicabilityConditionResources.json');
-    debugger
     const tenApplicabilityConditions = resolver('PlanDefinition/tenApplicabilityConditions')[0];
     const patientReference = 'Patient/1';
 

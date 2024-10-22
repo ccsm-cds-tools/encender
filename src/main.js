@@ -1,3 +1,7 @@
+import { Worker as NodeWorker } from "worker_threads";
+import { createRequire } from "module";
+import { initialzieCqlWorker } from "cql-worker";
+
 import { 
   getIncrementalId,
   pruneNull,
@@ -19,64 +23,84 @@ import {
 
 
 const  executeCQL = async (libContainer=null, patientReference=null, resolver=null, aux={}) => {
-  let isNodeJs = true;//aux?.isNodeJs ?? false;
-  let patientId = patientReference.replace('Patient/','');
-  if (Array.isArray(libContainer.library)) {
-    const libRef = libContainer.library[0];
-    const cqlExecutionCache = aux?.cqlExecutionCache || {};
-    if(cqlExecutionCache[libRef]) {
-       return cqlExecutionCache[libRef];
-    }
-    aux.cqlExecutionCache = cqlExecutionCache;
-    let elmJsonDependencies = aux.elmJsonDependencies ?? [];
-    const valueSetJson = aux.valueSetJson ?? {};
-    const cqlParameters = aux.cqlParameters ?? {};
- 
-    const elmJsonKey = Object.keys(elmJsonDependencies).filter(e => libRef.includes(e))[0];
-    let elmJson = elmJsonDependencies[elmJsonKey];
+  let isNodeJs = aux?.isNodeJs ?? false;
+  const WorkerFactory =
+    aux?.WorkerFactory ??
+    (() => {
+      isNodeJs = true;
+      const require = createRequire(import.meta.url);
+      return new NodeWorker(
+        require.resolve("cql-worker/src/cql-worker-thread.js")
+      );
+    });
+  let cqlWorker = WorkerFactory();
+  try {
+    let [
+      setupExecution,
+      sendPatientBundle,
+      evaluateExpression,
+      evaluateLibrary,
+    ] = initialzieCqlWorker(cqlWorker, isNodeJs);
 
-    if (!elmJson) {
-      const resolvedLibraries = await resolver(libRef);
-      if (Array.isArray(resolvedLibraries) && resolvedLibraries.length > 0) {
-        const library = resolvedLibraries[0]; // TODO: What to do if multiple libraries are found?
-        // Find an ELM JSON Attachment
-        // NOTE: The cql-worker library can only execute ELM JSON
-        elmJson = getElmJsonFromLibrary(library, isNodeJs);
-        if (!elmJson) {
-          throw new Error('No Attachments with contentType "application/elm+json" found in referenced Library: ' + libRef);
-        }
-      } else {
-        throw new Error('Cannot resolve referenced Library: ' + libRef);
+    let patientId = patientReference.replace("Patient/", "");
+    if (Array.isArray(libContainer.library)) {
+      const libRef = libContainer.library[0];
+      const cqlExecutionCache = aux?.cqlExecutionCache || {};
+      if (cqlExecutionCache[libRef]) {
+        return cqlExecutionCache[libRef];
       }
+      aux.cqlExecutionCache = cqlExecutionCache;
+      let elmJsonDependencies = aux.elmJsonDependencies ?? [];
+      const valueSetJson = aux.valueSetJson ?? {};
+      const cqlParameters = aux.cqlParameters ?? {};
+
+      const elmJsonKey = Object.keys(elmJsonDependencies).filter((e) =>
+        libRef.includes(e)
+      )[0];
+      let elmJson = elmJsonDependencies[elmJsonKey];
+
+      if (!elmJson) {
+        const resolvedLibraries = await resolver(libRef);
+        if (Array.isArray(resolvedLibraries) && resolvedLibraries.length > 0) {
+          const library = resolvedLibraries[0]; // TODO: What to do if multiple libraries are found?
+          // Find an ELM JSON Attachment
+          // NOTE: The cql-worker library can only execute ELM JSON
+          elmJson = getElmJsonFromLibrary(library, isNodeJs);
+          if (!elmJson) {
+            throw new Error(
+              'No Attachments with contentType "application/elm+json" found in referenced Library: ' +
+                libRef
+            );
+          }
+        } else {
+          throw new Error("Cannot resolve referenced Library: " + libRef);
+        }
+      }
+
+      await setupExecution(
+        elmJson,
+        valueSetJson,
+        cqlParameters,
+        elmJsonDependencies
+      );
+
+      let patientBundle = {
+        resourceType: "Bundle",
+        id: "survey-bundle",
+        type: "collection",
+        entry: (await resolver()).map((r) => {
+          return { resource: r };
+        }),
+      };
+      await sendPatientBundle(patientBundle);
+      let results = await evaluateLibrary();
+      cqlExecutionCache[libRef] = results;
+      return results;
     }
-    let repository  = new cql.Repository({
-        'FHIRHelpers': fhirHelpersJson,
-        ...elmJsonDependencies
-      });
-
-    let library = new cql.Library(elmJson, repository);
-    let codeService = new cql.CodeService(valueSetJson);
-    let executor = new cql.Executor(library, codeService, cqlParameters);
-
-    let patientBundle = {
-      resourceType: 'Bundle',
-      id: 'survey-bundle',
-      type: 'collection',
-      entry: ( await resolver() ).map(r => {return {resource: r}})
-    };
-
-    try{
-      let psource = new PatientSource.FHIRv401();
-      psource.loadBundles([patientBundle]);
-      let results = await executor.exec(psource)
-
-      let patientResult = results.patientResults[patientId];   
-      cqlExecutionCache[libRef]=patientResult;
-      return patientResult;
-    }
-    catch(e){ 
-      throw e;
-    }
+  } catch (e) {
+    throw e;
+  } finally {
+    cqlWorker?.terminate();
   }
 }
 
