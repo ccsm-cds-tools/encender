@@ -232,6 +232,38 @@
                   }
                } ]
             }
+         }, {
+            "name" : "InfoMessage",
+            "context" : "Patient",
+            "accessLevel" : "Public",
+            "expression" : {
+               "type" : "Message",
+               "source" : {
+                  "valueType" : "{urn:hl7-org:elm-types:r1}Boolean",
+                  "value" : "true",
+                  "type" : "Literal"
+               },
+               "condition" : {
+                  "valueType" : "{urn:hl7-org:elm-types:r1}Boolean",
+                  "value" : "true",
+                  "type" : "Literal"
+               },
+               "code" : {
+                  "valueType" : "{urn:hl7-org:elm-types:r1}String",
+                  "value" : "Undefined",
+                  "type" : "Literal"
+               },
+               "severity" : {
+                  "valueType" : "{urn:hl7-org:elm-types:r1}String",
+                  "value" : "Message",
+                  "type" : "Literal"
+               },
+               "message" : {
+                  "valueType" : "{urn:hl7-org:elm-types:r1}String",
+                  "value" : "This is a message!",
+                  "type" : "Literal"
+               }
+            }
          } ]
       }
    }
