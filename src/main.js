@@ -19,7 +19,7 @@ import {
   shouldTryToStringify, 
   transformChoicePaths
 } from './dynamic.js';
-
+import { OperationOutcomeMessageListener } from './messageListener.js';
 
 
 const  executeCQL = async (libContainer=null, patientReference=null, resolver=null, aux={}) => {
@@ -93,9 +93,12 @@ const  executeCQL = async (libContainer=null, patientReference=null, resolver=nu
         }),
       };
       await sendPatientBundle(patientBundle);
-      let results = await evaluateLibrary();
-      cqlExecutionCache[libRef] = results;
-      return results;
+      const tx = await evaluateLibrary();
+      cqlExecutionCache[libRef] = tx.result;
+      if(aux.messageListener && tx.messages){
+        aux.messageListener.accumulateMessages(tx.messages);
+      }      
+      return tx.result;
     }
   } catch (e) {
     throw e;
@@ -135,6 +138,7 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
   ----------------------------------------------------------------------------*/
   // Validates the input parameters and returns the Patient resource if there are no issues
   const Patient = await validate(planDefinition, patientReference, resolver, aux);
+  aux.messageListener = new OperationOutcomeMessageListener();;
 
   // Either use the provided ID generation function or just use a simple counter.
   const getId = aux?.getId ?? getIncrementalId;
@@ -196,6 +200,10 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
        RequestGroup.action = processedActions;
     }
 
+  if(aux.messageListener){
+    //add cqf-messages extension and contained oeprationoutcome to target
+    aux.messageListener.setCqfMessages(RequestGroup);
+  } 
   
   return [
     CarePlan,
