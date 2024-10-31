@@ -742,14 +742,37 @@ describe('Message Listener Tests', async function() {
     const [CarePlan, RequestGroup, ...otherResources] = await applyPlan(messageCondition, patientReference, resolver);
 
     RequestGroup.should.have.property('extension').that.is.an('array').and.is.not.null;
-    RequestGroup.should.have.property('contained').that.is.an('array').and.is.not.null;
-    // this fails, though the message should return true
-/*     RequestGroup.action.should.deep.equal([
+    RequestGroup.extension.should.containSubset([
       {
-        id: '82',
+        url: "http://hl7.org/fhir/StructureDefinition/cqf-messages",
+        valueReference: {
+          reference: "#contained-1",
+        },
+      }
+    ]);
+    RequestGroup.should.have.property('contained').that.is.an('array').and.is.not.null;
+    RequestGroup.contained.should.containSubset([
+      {
+        resourceType: "OperationOutcome",
+        issue: [
+          {
+            severity: "information",
+            code: "processing",
+            diagnostics: "This is a message!",
+            details: {
+              text: "Undefined",
+            },
+          },
+        ],
+        id: "contained-1",
+      }
+    ]);    
+    
+    RequestGroup.action.should.containSubset([
+      {
         title: 'I am an action with a message'
       }
-    ]); */
+    ]);
 
   });
 });
