@@ -22,7 +22,7 @@ import {
 import { OperationOutcomeMessageListener } from './messageListener.js';
 
 
-const  executeCQL = async (libContainer=null, patientReference=null, resolver=null, aux={}) => {
+const  executeCQL = async (libContainer=null, patientReference=null, resolver=null, aux={}, messageListener=null) => {
   let isNodeJs = aux?.isNodeJs ?? false;
   const WorkerFactory =
     aux?.WorkerFactory ??
@@ -95,8 +95,9 @@ const  executeCQL = async (libContainer=null, patientReference=null, resolver=nu
       await sendPatientBundle(patientBundle);
       const tx = await evaluateLibrary();
       cqlExecutionCache[libRef] = tx.result;
-      if(aux.messageListener && tx.messages){
-        aux.messageListener.accumulateMessages(tx.messages);
+      if(messageListener && tx.messages){
+        // if library result is pulled from cqlExecutionCache then messagesListener will not contain messages
+        messageListener.accumulateMessages(tx.messages);
       }      
       return tx.result;
     }
@@ -138,7 +139,6 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
   ----------------------------------------------------------------------------*/
   // Validates the input parameters and returns the Patient resource if there are no issues
   const Patient = await validate(planDefinition, patientReference, resolver, aux);
-  aux.messageListener = new OperationOutcomeMessageListener();;
 
   // Either use the provided ID generation function or just use a simple counter.
   const getId = aux?.getId ?? getIncrementalId;
@@ -190,7 +190,8 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
   let processedActions = []; // Array to hold processed actions
   let otherResources = []; // Any resources created as part of action processing
 
-  let patientResult =await executeCQL(planDefinition, patientReference,resolver,aux) || {}; 
+  const messageListener = new OperationOutcomeMessageListener();
+  let patientResult =await executeCQL(planDefinition, patientReference,resolver,aux,messageListener) || {}; 
   let evaluateExpression = (expression) => {
       return patientResult[expression]    
     }
@@ -200,9 +201,9 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
        RequestGroup.action = processedActions;
     }
 
-  if(aux.messageListener){
+  if(messageListener){
     //add cqf-messages extension and contained oeprationoutcome to target
-    aux.messageListener.setCqfMessages(RequestGroup);
+    messageListener.setCqfMessages(RequestGroup);
   } 
   
   return [
@@ -448,7 +449,7 @@ export async function processActions(actions, patientReference, resolver, aux, e
 
 /**
  * Apply an ActivityDefinition to a Patient
- * @param {Object} planDefinition - The ActivityDefinition
+ * @param {Object} activityDefinition - The ActivityDefinition
  * @param {String} patientReference - A reference to the Patient
  * @param {Function} resolver - For resolving references to FHIR resources
  * @param {Object} aux - Auxiliary resources and services
@@ -670,7 +671,8 @@ export async function processActions(actions, patientReference, resolver, aux, e
       //   const elmJsonKey = Object.keys(elmJsonDependencies).filter(e => libRef.includes(e))[0];
       //   let elmJson = elmJsonDependencies[elmJsonKey];
   
-      let patientResult = await executeCQL(activityDefinition, patientReference,resolver,aux) || {}; 
+      const messageListener = new OperationOutcomeMessageListener();
+      let patientResult = await executeCQL(activityDefinition, patientReference,resolver,aux,messageListener) || {}; 
       // Asynchronously evaluate all dynamicValues
       const evaluatedValues = activityDefinition?.dynamicValue.map( (dV) => {
         if (dV?.expression?.language != 'text/cql') {
@@ -694,6 +696,11 @@ export async function processActions(actions, patientReference, resolver, aux, e
           ...append
         };
       }, targetResource);
+
+      if(messageListener){
+        //add cqf-messages extension and contained oeprationoutcome to target
+        messageListener.setCqfMessages(targetResource);
+      } 
     } 
 
   return targetResource;
