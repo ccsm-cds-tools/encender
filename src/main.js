@@ -19,7 +19,7 @@ import {
   shouldTryToStringify, 
   transformChoicePaths
 } from './dynamic.js';
-import { OperationOutcomeMessageListener } from './messageListener.js';
+import { MapMessageListener, accumulateMessages, setCqfMessages } from './messageListener.js';
 
 
 const  executeCQL = async (libContainer=null, patientReference=null, resolver=null, aux={}, messageListener=null) => {
@@ -47,8 +47,11 @@ const  executeCQL = async (libContainer=null, patientReference=null, resolver=nu
       const libRef = libContainer.library[0];
       const cqlExecutionCache = aux?.cqlExecutionCache || {};
       if (cqlExecutionCache[libRef]) {
-        return cqlExecutionCache[libRef];
-      }
+        if(messageListener && cqlExecutionCache[libRef].messages){
+          accumulateMessages(messageListener, cqlExecutionCache[libRef].messages);
+        }         
+        return cqlExecutionCache[libRef].result;
+      }       
       aux.cqlExecutionCache = cqlExecutionCache;
       let elmJsonDependencies = aux.elmJsonDependencies ?? [];
       const valueSetJson = aux.valueSetJson ?? {};
@@ -94,11 +97,10 @@ const  executeCQL = async (libContainer=null, patientReference=null, resolver=nu
       };
       await sendPatientBundle(patientBundle);
       const tx = await evaluateLibrary();
-      cqlExecutionCache[libRef] = tx.result;
+      cqlExecutionCache[libRef] = tx;
       if(messageListener && tx.messages){
-        // if library result is pulled from cqlExecutionCache then messagesListener will not contain messages
-        messageListener.accumulateMessages(tx.messages);
-      }      
+        accumulateMessages(messageListener, tx.messages);
+      }   
       return tx.result;
     }
   } catch (e) {
@@ -190,7 +192,8 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
   let processedActions = []; // Array to hold processed actions
   let otherResources = []; // Any resources created as part of action processing
 
-  const messageListener = new OperationOutcomeMessageListener();
+  const recordedMessages = new Map();
+  const messageListener = new MapMessageListener(recordedMessages);
   let patientResult =await executeCQL(planDefinition, patientReference,resolver,aux,messageListener) || {}; 
   let evaluateExpression = (expression) => {
       return patientResult[expression]    
@@ -201,10 +204,9 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
        RequestGroup.action = processedActions;
     }
 
-  if(messageListener){
-    //add cqf-messages extension and contained oeprationoutcome to target
-    messageListener.setCqfMessages(RequestGroup);
-  } 
+  
+  //add cqf-messages extension and contained oeprationoutcome to target
+  setCqfMessages(recordedMessages, RequestGroup); 
   
   return [
     CarePlan,
@@ -671,7 +673,8 @@ export async function processActions(actions, patientReference, resolver, aux, e
       //   const elmJsonKey = Object.keys(elmJsonDependencies).filter(e => libRef.includes(e))[0];
       //   let elmJson = elmJsonDependencies[elmJsonKey];
   
-      const messageListener = new OperationOutcomeMessageListener();
+      const recordedMessages = new Map();
+      const messageListener = new MapMessageListener(recordedMessages);
       let patientResult = await executeCQL(activityDefinition, patientReference,resolver,aux,messageListener) || {}; 
       // Asynchronously evaluate all dynamicValues
       const evaluatedValues = activityDefinition?.dynamicValue.map( (dV) => {
@@ -697,10 +700,8 @@ export async function processActions(actions, patientReference, resolver, aux, e
         };
       }, targetResource);
 
-      if(messageListener){
-        //add cqf-messages extension and contained oeprationoutcome to target
-        messageListener.setCqfMessages(targetResource);
-      } 
+      //add cqf-messages extension and contained operationoutcome to target
+      setCqfMessages(recordedMessages, targetResource); 
     } 
 
   return targetResource;

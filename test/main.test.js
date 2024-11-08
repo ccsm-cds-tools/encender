@@ -733,7 +733,7 @@ describe('ActivityDefinition.kind Tests', async function() {
 
 });
 
-describe('Message Listener Tests', async function() {
+describe('Message Tests', async function() {
   it('Should execute a CQL expression with a Message operation', async function() {
     let resolver = simpleResolver('./test/fixtures/messageConditionResources.json');
     const messageCondition = resolver('PlanDefinition/messageApplicabilityConditions')[0];
@@ -773,6 +773,26 @@ describe('Message Listener Tests', async function() {
         title: 'I am an action with a message'
       }
     ]);
+  });
 
+  it('Should cache messages for CQL expressions', async function() {
+    let resolver = simpleResolver('./test/fixtures/messageConditionResources.json');
+    const messageCondition = resolver('PlanDefinition/messageApplicabilityConditions')[0];
+    const patientReference = 'Patient/1';
+    const aux = {};
+
+    await applyPlan(messageCondition, patientReference, resolver, aux);
+    // run it a second time to test caching
+    const [CarePlan, RequestGroup, ...otherResources] = await applyPlan(messageCondition, patientReference, resolver, aux);
+
+    RequestGroup.should.have.property('extension').that.is.an('array').and.is.not.null;
+    RequestGroup.extension.should.containSubset([
+      {
+        url: "http://hl7.org/fhir/StructureDefinition/cqf-messages",
+        valueReference: {
+          reference: "#contained-1",
+        },
+      }
+    ]);
   });
 });
