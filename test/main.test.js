@@ -98,7 +98,7 @@ describe('Basic Conversion Tests', async function() {
       reference: 'Patient/1',
       display: ''
     });
-    CarePlan.instantiatesCanonical.should.equal('https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition');
+    CarePlan.instantiatesCanonical[0].should.equal('https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition');
     CarePlan.status.should.equal('draft');
     CarePlan.intent.should.equal('proposal');
     CarePlan.activity.should.deep.equal([
@@ -113,7 +113,7 @@ describe('Basic Conversion Tests', async function() {
       reference: 'Patient/1',
       display: ''
     });
-    RequestGroup.instantiatesCanonical.should.equal('https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition');
+    RequestGroup.instantiatesCanonical[0].should.equal('https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition');
     RequestGroup.status.should.equal('draft');
     RequestGroup.intent.should.equal('proposal');
 
@@ -140,7 +140,7 @@ describe('More Complex Conversion Tests', async function() {
       {
         resourceType: 'CarePlan',
         subject: { reference: 'Patient/1', display: '' },
-        instantiatesCanonical: 'https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition',
+        instantiatesCanonical: ['https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition'],
         intent: 'proposal',
         status: 'option',
         activity: [{
@@ -150,7 +150,7 @@ describe('More Complex Conversion Tests', async function() {
       {
         resourceType: 'RequestGroup',
         subject: { reference: 'Patient/1', display: '' },
-        instantiatesCanonical: 'https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition',
+        instantiatesCanonical: ['https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition'],
         intent: 'proposal',
         status: 'draft'
       }
@@ -182,7 +182,7 @@ describe('More Complex Conversion Tests', async function() {
       {
         resourceType: 'CarePlan',
         subject: { reference: 'Patient/1', display: '' },
-        instantiatesCanonical: 'https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition',
+        instantiatesCanonical: ['https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition'],
         intent: 'proposal',
         status: 'option',
         activity: [{
@@ -192,7 +192,7 @@ describe('More Complex Conversion Tests', async function() {
       {
         resourceType: 'RequestGroup',
         subject: { reference: 'Patient/1', display: '' },
-        instantiatesCanonical: 'https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition',
+        instantiatesCanonical: ['https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition'],
         intent: 'proposal',
         status: 'draft'
       }
@@ -543,7 +543,7 @@ describe('Asynchronous tests', async function() {
       reference: 'Patient/1',
       display: ''
     });
-    CarePlan.instantiatesCanonical.should.equal('https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition');
+    CarePlan.instantiatesCanonical[0].should.equal('https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition');
     CarePlan.status.should.equal('draft');
     CarePlan.intent.should.equal('proposal');
     CarePlan.activity.should.deep.equal([
@@ -558,7 +558,7 @@ describe('Asynchronous tests', async function() {
       reference: 'Patient/1',
       display: ''
     });
-    RequestGroup.instantiatesCanonical.should.equal('https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition');
+    RequestGroup.instantiatesCanonical[0].should.equal('https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/canonicalPlanDefinition');
     RequestGroup.status.should.equal('draft');
     RequestGroup.intent.should.equal('proposal');
 
@@ -578,7 +578,7 @@ describe('Merge Nested Actions Tests', async function() {
       {
         resourceType: 'RequestGroup',        
         subject: { reference: 'Patient/1', display: '' },
-        instantiatesCanonical: 'https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/nestedPlanDefinitionWithActivity',
+        instantiatesCanonical: ['https://example-fhir-api.com/path/to/fhir/api/PlanDefinition/nestedPlanDefinitionWithActivity'],
         intent: 'proposal',
         status: 'draft',
         action: [
