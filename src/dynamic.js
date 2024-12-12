@@ -1,4 +1,56 @@
 /**
+ * Process action and ActivityDefinition dynamic values.
+ * @param {object} act - PlanDefinition.action or ActivityDefinition. 
+ * @param evaluateExpression - Expression to retrieve from patient results.
+ * @param {object} targetResource - FHIR resource to apply dynamic values.
+ * @returns {object} - Updated resource.
+ */
+export function processDynamicValues(act, evaluateExpression, targetResource, targetAction = null) {
+  let evaluatedValues = [];
+  if (act?.dynamicValue) {
+    // Asynchronously evaluate all dynamicValues
+    evaluatedValues = act.dynamicValue.map( (dV) => {
+      if (dV?.expression?.language != 'text/cql') {
+        throw new Error('Dynamic value specifies an unsupported expression language');
+      }
+      const value =  evaluateExpression(dV.expression.expression);
+      return {
+        path: dV.path,
+        evaluated: value
+      };
+      // TODO: Throw error if expression can't be evaluated (two cases)
+    });
+
+    const actionValues = evaluatedValues.filter(item => item.path.startsWith('%action'));
+    const nonActionValues = evaluatedValues.filter(item => !item.path.startsWith('%action'));
+
+    // Copy the values over to the target resource
+    targetResource = nonActionValues.reduce((acc, cv) => {
+      let path = transformChoicePaths(targetResource.resourceType, cv.path);
+      let value = shouldTryToStringify(cv.path, cv.evaluated) ? JSON.stringify(cv.evaluated) : cv.evaluated;
+      let append = expandPathAndValue(path, value);
+      return {
+        ...acc,
+        ...append
+      };
+    }, targetResource);
+    if(targetAction){
+      targetAction = actionValues.reduce((acc, cv) => {
+        let path = cv.path.replace('%action.', '');
+        path = transformChoicePaths("RequestGroup.action", path);
+        let value = shouldTryToStringify(cv.path, cv.evaluated) ? JSON.stringify(cv.evaluated) : cv.evaluated;
+        let append = expandPathAndValue(path, value);
+        return {
+          ...acc,
+          ...append
+        };
+      }, targetAction);
+    }
+  }
+  return targetAction ?  [targetResource, targetAction] : targetResource;
+}
+
+/**
  * In some cases we need to serialize objects coming out of CQL expressions. This 
  * occurs when the target element is a string but what is being returned by a CQL 
  * expression is an object (tuple or list). This function determines whether the 
