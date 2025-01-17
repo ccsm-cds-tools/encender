@@ -1,6 +1,7 @@
 {
    "library" : {
       "annotation" : [ {
+         "translatorVersion" : "3.2.0",
          "translatorOptions" : "",
          "type" : "CqlToElmInfo"
       } ],
@@ -262,6 +263,16 @@
                   "valueType" : "{urn:hl7-org:elm-types:r1}String",
                   "value" : "This is a message!",
                   "type" : "Literal"
+               }
+            }
+         }, {
+            "name" : "ReturnsNow",
+            "context" : "Patient",
+            "accessLevel" : "Public",
+            "expression" : {
+               "type" : "ToString",
+               "operand" : {
+                  "type" : "Now"
                }
             }
          } ]

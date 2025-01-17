@@ -94,7 +94,8 @@ const  executeCQL = async (libContainer=null, patientReference=null, resolver=nu
         }),
       };
       await sendPatientBundle(patientBundle);
-      const tx = await evaluateLibrary();
+      const executionDateTime = aux?.executionDateTime || undefined;
+      const tx = await evaluateLibrary(executionDateTime);
       cqlExecutionCache[libRef] = tx;
       if(messageListener && tx.messages){
         accumulateMessages(messageListener, tx.messages);

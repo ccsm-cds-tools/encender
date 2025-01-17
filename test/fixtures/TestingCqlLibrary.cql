@@ -54,3 +54,6 @@ define ReturnsACode:
 
 define InfoMessage: 
   Message(true, true, 'Undefined', 'Message', 'This is a message!')
+
+define ReturnsNow:
+  ToString(Now())

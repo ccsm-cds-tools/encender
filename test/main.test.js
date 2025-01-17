@@ -519,6 +519,27 @@ describe('CQL expression tests', async function() {
 
   });
 
+  it('Should set requestgroup action dynamic value and apply aux executionDateTime.', async function() {
+    let resolver = simpleResolver('./test/fixtures/dynamicValuesResources.json');
+    const hasDynamicValueAction = resolver('PlanDefinition/hasDynamicValueDateThatSetsActionTitle')[0];
+    const patientReference = 'Patient/1';
+
+    const [CarePlan, RequestGroup, ...otherResources] = await applyPlan(hasDynamicValueAction, patientReference, resolver, 
+      {executionDateTime: new Date("2023-12-10T00:00:00.0Z")});
+
+    RequestGroup.action.should.containSubset([
+      {        
+        title: "I am an unconditional action",
+        action: [
+          {
+            title: 'Sat Dec 09 2023 19:00:00 GMT-0500 (Eastern Standard Time)'
+          }
+        ]
+      }
+    ]);
+
+  });  
+
   // TODO: Metadata and precedence rules
 
 });
@@ -584,7 +605,7 @@ describe('Merge Nested Actions Tests', async function() {
         action: [
           {
             resource: {
-              reference: 'ServiceRequest/72'
+              reference: 'ServiceRequest/77'
             }
           }
         ]
