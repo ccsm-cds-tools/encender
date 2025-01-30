@@ -90,7 +90,7 @@ describe('Basic Conversion Tests', async function() {
     const canonicalPlanDefinition = resolver('PlanDefinition/canonicalPlanDefinition')[0];
     const patientReference = 'Patient/1';
     
-    const [CarePlan, RequestGroup] = await applyPlan(canonicalPlanDefinition, patientReference, resolver);
+    const [CarePlan, RequestGroup] = await applyPlan(canonicalPlanDefinition, patientReference, resolver, {executionDateTime: "2023-01-01"});
     
     CarePlan.should.not.be.undefined;
     CarePlan.resourceType.should.equal('CarePlan');
@@ -106,6 +106,7 @@ describe('Basic Conversion Tests', async function() {
         reference: { reference: 'RequestGroup/' + RequestGroup.id }
       }
     ]);
+    CarePlan.created.should.equal('2023-01-01');
 
     RequestGroup.should.not.be.undefined;
     RequestGroup.resourceType.should.equal('RequestGroup');

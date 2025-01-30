@@ -157,7 +157,8 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
     },
     instantiatesCanonical: [planDefinition.url],
     intent: 'proposal',
-    status: planDefinition?.status ?? 'draft'
+    status: planDefinition?.status ?? 'draft',
+    created: aux?.executionDateTime || new Date().toISOString()
   };
 
   /*----------------------------------------------------------------------------
