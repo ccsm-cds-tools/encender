@@ -16,7 +16,7 @@
           {
             "kind": "applicability",
             "expression": {
-              "language": "text/cql",
+              "language": "text/cql-identifier",
               "expression": "ReturnsTrue"
             }
           }
@@ -28,7 +28,7 @@
               {
                 "path": "code",
                 "expression": {
-                  "language": "text/cql",
+                  "language": "text/cql-identifier",
                   "expression": "ReturnsACode"
                 }
               }
@@ -95,7 +95,7 @@
           {
             "kind": "applicability",
             "expression": {
-              "language": "text/cql",
+              "language": "text/cql-identifier",
               "expression": "ReturnsTrue"
             }
           }
@@ -107,7 +107,7 @@
               {
                 "path": "payload[0].content.ofType(string)",
                 "expression": {
-                  "language": "text/cql",
+                  "language": "text/cql-identifier",
                   "expression": "ReturnsACode"
                 }
               }
@@ -143,7 +143,7 @@
               {
                 "path": "%action.title",
                 "expression": {
-                  "language": "text/cql",
+                  "language": "text/cql-identifier",
                   "expression": "ReturnsNow"
                 }
               }

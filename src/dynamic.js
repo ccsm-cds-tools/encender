@@ -10,7 +10,7 @@ export function processDynamicValues(act, evaluateExpression, targetResource, ta
   if (act?.dynamicValue) {
     // Asynchronously evaluate all dynamicValues
     evaluatedValues = act.dynamicValue.map( (dV) => {
-      if (dV?.expression?.language != 'text/cql') {
+      if (dV?.expression?.language != 'text/cql-identifier') {
         throw new Error('Dynamic value specifies an unsupported expression language');
       }
       const value =  evaluateExpression(dV.expression.expression);

@@ -290,7 +290,7 @@ export async function processActions(actions, patientReference, resolver, aux, e
     if (act?.condition) {
       // TODO: Check that these are applicability conditions
       const evaluatedConditions = act.condition.map( (c) => {
-        if (c?.expression?.language != 'text/cql') {
+        if (c?.expression?.language != 'text/cql-identifier') {
           throw new Error('Action condition specifies an unsupported expression language');
         }
         const expression = c.expression.expression;
