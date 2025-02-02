@@ -171,8 +171,9 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
   3. Create a RequestGroup resource focused on the Patient in context and linked 
   to the PlanDefinition using the instantiatesCanonical element
   ----------------------------------------------------------------------------*/
+  let { created, ...restOfCarePlan } = CarePlan;
   let RequestGroup = {
-    ...CarePlan,
+    ...restOfCarePlan,
     resourceType: 'RequestGroup',
     id: getId()
   };
