@@ -22,7 +22,7 @@
           {
             "kind": "applicability",
             "expression": {
-              "language": "text/cql",
+              "language": "text/cql-identifier",
               "expression": "ReturnsTrue"
             }
           }
@@ -92,7 +92,7 @@
           {
             "kind": "applicability",
             "expression": {
-              "language": "text/cql",
+              "language": "text/cql-identifier",
               "expression": "ReturnsFalse"
             }
           }
@@ -121,14 +121,14 @@
           {
             "kind": "applicability",
             "expression": {
-              "language": "text/cql",
+              "language": "text/cql-identifier",
               "expression": "ReturnsTrue"
             }
           },
           {
             "kind": "applicability",
             "expression": {
-              "language": "text/cql",
+              "language": "text/cql-identifier",
               "expression": "ReturnsFalse"
             }
           }
@@ -157,14 +157,14 @@
           {
             "kind": "applicability",
             "expression": {
-              "language": "text/cql",
+              "language": "text/cql-identifier",
               "expression": "ReturnsTrue"
             }
           },
           {
             "kind": "applicability",
             "expression": {
-              "language": "text/cql",
+              "language": "text/cql-identifier",
               "expression": "ReturnsTrue"
             }
           }
@@ -193,70 +193,70 @@
           {
             "kind": "applicability",
             "expression": {
-              "language": "text/cql",
+              "language": "text/cql-identifier",
               "expression": "ReturnsTrue"
             }
           },
           {
             "kind": "applicability",
             "expression": {
-              "language": "text/cql",
+              "language": "text/cql-identifier",
               "expression": "ReturnsFalse"
             }
           },
           {
             "kind": "applicability",
             "expression": {
-              "language": "text/cql",
+              "language": "text/cql-identifier",
               "expression": "AlsoReturnsTrue"
             }
           },
           {
             "kind": "applicability",
             "expression": {
-              "language": "text/cql",
+              "language": "text/cql-identifier",
               "expression": "AnotherTrueStatement"
             }
           },
           {
             "kind": "applicability",
             "expression": {
-              "language": "text/cql",
+              "language": "text/cql-identifier",
               "expression": "ButIAmFalse"
             }
           },
           {
             "kind": "applicability",
             "expression": {
-              "language": "text/cql",
+              "language": "text/cql-identifier",
               "expression": "AlsoFalseHere"
             }
           },
           {
             "kind": "applicability",
             "expression": {
-              "language": "text/cql",
+              "language": "text/cql-identifier",
               "expression": "TrueMathStatement"
             }
           },
           {
             "kind": "applicability",
             "expression": {
-              "language": "text/cql",
+              "language": "text/cql-identifier",
               "expression": "FalseMathStatement"
             }
           },
           {
             "kind": "applicability",
             "expression": {
-              "language": "text/cql",
+              "language": "text/cql-identifier",
               "expression": "NestedMathStatement"
             }
           },
           {
             "kind": "applicability",
             "expression": {
-              "language": "text/cql",
+              "language": "text/cql-identifier",
               "expression": "AnotherNestedMathStatement"
             }
           }

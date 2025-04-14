@@ -15,14 +15,12 @@ import { validate } from './validate.js';
 import { merge } from './merge.js';
 import fhirHelpersJson from './FHIRHelpers-4.0.1.json.js';
 import {
-  expandPathAndValue, 
-  shouldTryToStringify, 
-  transformChoicePaths
+  processDynamicValues
 } from './dynamic.js';
+import { MapMessageListener, accumulateMessages, setCqfMessages } from './messageListener.js';
 
 
-
-const  executeCQL = async (libContainer=null, patientReference=null, resolver=null, aux={}) => {
+const  executeCQL = async (libContainer=null, patientReference=null, resolver=null, aux={}, messageListener=null) => {
   let isNodeJs = aux?.isNodeJs ?? false;
   const WorkerFactory =
     aux?.WorkerFactory ??
@@ -47,8 +45,11 @@ const  executeCQL = async (libContainer=null, patientReference=null, resolver=nu
       const libRef = libContainer.library[0];
       const cqlExecutionCache = aux?.cqlExecutionCache || {};
       if (cqlExecutionCache[libRef]) {
-        return cqlExecutionCache[libRef];
-      }
+        if(messageListener && cqlExecutionCache[libRef].messages){
+          accumulateMessages(messageListener, cqlExecutionCache[libRef].messages);
+        }         
+        return cqlExecutionCache[libRef].result;
+      }       
       aux.cqlExecutionCache = cqlExecutionCache;
       let elmJsonDependencies = aux.elmJsonDependencies ?? [];
       const valueSetJson = aux.valueSetJson ?? {};
@@ -93,9 +94,13 @@ const  executeCQL = async (libContainer=null, patientReference=null, resolver=nu
         }),
       };
       await sendPatientBundle(patientBundle);
-      let results = await evaluateLibrary();
-      cqlExecutionCache[libRef] = results;
-      return results;
+      const executionDateTime = aux?.executionDateTime || undefined;
+      const tx = await evaluateLibrary(executionDateTime);
+      cqlExecutionCache[libRef] = tx;
+      if(messageListener && tx.messages){
+        accumulateMessages(messageListener, tx.messages);
+      }   
+      return tx.result;
     }
   } catch (e) {
     throw e;
@@ -150,9 +155,10 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
       reference: 'Patient/' + Patient.id,
       display: parseName(Patient?.name)
     },
-    instantiatesCanonical: planDefinition.url,
+    instantiatesCanonical: [planDefinition.url],
     intent: 'proposal',
-    status: planDefinition?.status ?? 'draft'
+    status: planDefinition?.status ?? 'draft',
+    created: aux?.executionDateTime || new Date().toISOString()
   };
 
   /*----------------------------------------------------------------------------
@@ -165,8 +171,9 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
   3. Create a RequestGroup resource focused on the Patient in context and linked 
   to the PlanDefinition using the instantiatesCanonical element
   ----------------------------------------------------------------------------*/
+  let { created, ...restOfCarePlan } = CarePlan;
   let RequestGroup = {
-    ...CarePlan,
+    ...restOfCarePlan,
     resourceType: 'RequestGroup',
     id: getId()
   };
@@ -186,7 +193,9 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
   let processedActions = []; // Array to hold processed actions
   let otherResources = []; // Any resources created as part of action processing
 
-  let patientResult =await executeCQL(planDefinition, patientReference,resolver,aux) || {}; 
+  const recordedMessages = new Map();
+  const messageListener = new MapMessageListener(recordedMessages);
+  let patientResult =await executeCQL(planDefinition, patientReference,resolver,aux,messageListener) || {}; 
   let evaluateExpression = (expression) => {
       return patientResult[expression]    
     }
@@ -196,6 +205,9 @@ export async function applyPlan(planDefinition, patientReference=null, resolver=
        RequestGroup.action = processedActions;
     }
 
+  
+  //add cqf-messages extension and contained oeprationoutcome to target
+  setCqfMessages(recordedMessages, RequestGroup); 
   
   return [
     CarePlan,
@@ -254,8 +266,16 @@ export async function processActions(actions, patientReference, resolver, aux, e
       id: act?.id ?? getId(),
       title: act?.title,
       description: act?.description,
+      code: act?.code,
       documentation: act?.documentation,
       textEquivalent: act?.textEquivalent,
+      timingDateTime:	act?.timingDateTime,	
+      timingAge: act?.timingAge,	
+      timingPeriod:	act?.timingPeriod,	
+      timingDuration:	act?.timingDuration,	
+      timingRange: act?.timingRange,	
+      timingTiming: act?.timingTiming,
+      type: act?.type,
       groupingBehavior: act?.groupingBehavior,
       selectionBehavior: act?.selectionBehavior,
       requiredBehavior: act?.requiredBehavior,
@@ -270,7 +290,7 @@ export async function processActions(actions, patientReference, resolver, aux, e
     if (act?.condition) {
       // TODO: Check that these are applicability conditions
       const evaluatedConditions = act.condition.map( (c) => {
-        if (c?.expression?.language != 'text/cql') {
+        if (c?.expression?.language != 'text/cql-identifier') {
           throw new Error('Action condition specifies an unsupported expression language');
         }
         const expression = c.expression.expression;
@@ -291,22 +311,6 @@ export async function processActions(actions, patientReference, resolver, aux, e
       const def = act?.definitionCanonical;
       if (def) {
         // 5.3. If there is a definition we assume this action is atomic
-
-        let evaluatedValues = [];
-        if (act?.dynamicValue) {
-          // Asynchronously evaluate all dynamicValues
-          evaluatedValues = act.dynamicValue.map( (dV) => {
-            if (dV?.expression?.language != 'text/cql') {
-              throw new Error('Dynamic value specifies an unsupported expression language');
-            }
-            const value =  evaluateExpression(dV.expression.expression);
-            return {
-              path: dV.path,
-              evaluated: value
-            };
-            // TODO: Throw error if expression can't be evaluated (two cases)
-          });
-        }
 
         if (/PlanDefinition/.test(def)) {
           // If this is a PlanDefinition, resolve it so we can apply it
@@ -331,18 +335,7 @@ export async function processActions(actions, patientReference, resolver, aux, e
             documentation: act?.documentation ?? planDefinition?.relatedArtifact
           });
 
-          if (act?.dynamicValue) {
-            // Copy the values over to the target resourced
-            CarePlan = evaluatedValues.reduce((acc, cv) => {
-              let path = transformChoicePaths('CarePlan', cv.path);
-              let value = shouldTryToStringify(cv.path, cv.evaluated) ? JSON.stringify(cv.evaluated) : cv.evaluated;
-              let append = expandPathAndValue(path, value);
-              return {
-                ...acc,
-                ...append
-              };
-            }, CarePlan);
-          }
+          [CarePlan, applied] = processDynamicValues(act, evaluateExpression, CarePlan, applied);
 
           // Bubble up the resources which were generated by this apply operation
           otherResources.push(CarePlan);
@@ -371,18 +364,7 @@ export async function processActions(actions, patientReference, resolver, aux, e
             documentation: act?.documentation ?? activityDefinition?.relatedArtifact
           });
 
-          if (act?.dynamicValue) {
-            // Copy the values over to the target resource
-            targetResource = evaluatedValues.reduce((acc, cv) => {
-              let path = transformChoicePaths(targetResource.resourceType, cv.path);
-              let value = shouldTryToStringify(cv.path, cv.evaluated) ? JSON.stringify(cv.evaluated) : cv.evaluated;
-              let append = expandPathAndValue(path, value);
-              return {
-                ...acc,
-                ...append
-              };
-            }, targetResource);
-          }
+          [targetResource, applied] = processDynamicValues(act, evaluateExpression, targetResource, applied);
 
           // Bubble up the resources which were generated by this apply operation
           otherResources.push(targetResource);
@@ -440,7 +422,7 @@ export async function processActions(actions, patientReference, resolver, aux, e
 
 /**
  * Apply an ActivityDefinition to a Patient
- * @param {Object} planDefinition - The ActivityDefinition
+ * @param {Object} activityDefinition - The ActivityDefinition
  * @param {String} patientReference - A reference to the Patient
  * @param {Function} resolver - For resolving references to FHIR resources
  * @param {Object} aux - Auxiliary resources and services
@@ -662,30 +644,17 @@ export async function processActions(actions, patientReference, resolver, aux, e
       //   const elmJsonKey = Object.keys(elmJsonDependencies).filter(e => libRef.includes(e))[0];
       //   let elmJson = elmJsonDependencies[elmJsonKey];
   
-      let patientResult = await executeCQL(activityDefinition, patientReference,resolver,aux) || {}; 
-      // Asynchronously evaluate all dynamicValues
-      const evaluatedValues = activityDefinition?.dynamicValue.map( (dV) => {
-        if (dV?.expression?.language != 'text/cql') {
-          throw new Error('Dynamic value specifies an unsupported expression language');
-        }
-        const value = patientResult[dV.expression.expression];
-        return {
-          path: dV.path,
-          evaluated: value
-        };
-        // TODO: Throw error if expression can't be evaluated (two cases)
-      });
+      const recordedMessages = new Map();
+      const messageListener = new MapMessageListener(recordedMessages);
+      let patientResult = await executeCQL(activityDefinition, patientReference,resolver,aux,messageListener) || {}; 
+      let evaluateExpression = (expression) => {
+        return patientResult[expression]    
+      }
 
-      // Copy the values over to the target resource
-      targetResource = evaluatedValues.reduce((acc, cv) => {
-        let path = transformChoicePaths(targetResource.resourceType, cv.path);
-        let value = shouldTryToStringify(cv.path, cv.evaluated) ? JSON.stringify(cv.evaluated) : cv.evaluated;
-        let append = expandPathAndValue(path, value);
-        return {
-          ...acc,
-          ...append
-        };
-      }, targetResource);
+      targetResource = processDynamicValues(activityDefinition, evaluateExpression, targetResource);
+
+      //add cqf-messages extension and contained operationoutcome to target
+      setCqfMessages(recordedMessages, targetResource); 
     } 
 
   return targetResource;
