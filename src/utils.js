@@ -77,7 +77,7 @@ export function parseName(names) {
         return JSON.parse(Buffer.from(libraryContent.data,'base64').toString('ascii'));
       }
       else {
-        return JSON.parse(window.atob(libraryContent.data)); // TODO: Throw error on no data
+        return JSON.parse(atob(libraryContent.data)); // TODO: Throw error on no data
       }
     }
   }
