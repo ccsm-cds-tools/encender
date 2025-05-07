@@ -20,7 +20,7 @@ import {
   transformChoicePaths
 } from './dynamic.js';
 
-
+const VALID_EXPRESSION = ['text/cql', 'text/cql-identifier']
 
 const  executeCQL = async (libContainer=null, patientReference=null, resolver=null, aux={}) => {
   let isNodeJs = aux?.isNodeJs ?? false;
@@ -41,7 +41,6 @@ const  executeCQL = async (libContainer=null, patientReference=null, resolver=nu
       evaluateExpression,
       evaluateLibrary,
     ] = initialzieCqlWorker(cqlWorker, isNodeJs);
-
     let patientId = patientReference.replace("Patient/", "");
     if (Array.isArray(libContainer.library)) {
       const libRef = libContainer.library[0];
@@ -270,7 +269,7 @@ export async function processActions(actions, patientReference, resolver, aux, e
     if (act?.condition) {
       // TODO: Check that these are applicability conditions
       const evaluatedConditions = act.condition.map( (c) => {
-        if (c?.expression?.language != 'text/cql') {
+        if (!VALID_EXPRESSION.includes(c?.expression?.language)) {
           throw new Error('Action condition specifies an unsupported expression language');
         }
         const expression = c.expression.expression;
@@ -296,7 +295,7 @@ export async function processActions(actions, patientReference, resolver, aux, e
         if (act?.dynamicValue) {
           // Asynchronously evaluate all dynamicValues
           evaluatedValues = act.dynamicValue.map( (dV) => {
-            if (dV?.expression?.language != 'text/cql') {
+            if (!VALID_EXPRESSION.includes(dV?.expression?.language)) {
               throw new Error('Dynamic value specifies an unsupported expression language');
             }
             const value =  evaluateExpression(dV.expression.expression);
@@ -665,7 +664,7 @@ export async function processActions(actions, patientReference, resolver, aux, e
       let patientResult = await executeCQL(activityDefinition, patientReference,resolver,aux) || {}; 
       // Asynchronously evaluate all dynamicValues
       const evaluatedValues = activityDefinition?.dynamicValue.map( (dV) => {
-        if (dV?.expression?.language != 'text/cql') {
+        if (!VALID_EXPRESSION.includes(dV?.expression?.language)) {
           throw new Error('Dynamic value specifies an unsupported expression language');
         }
         const value = patientResult[dV.expression.expression];
